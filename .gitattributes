@@ -1,0 +1,3 @@
+* text=auto eol=lf
+# The webhook test vector is signed byte for byte: never touch its bytes.
+examples/webhooks/test-body.json -text

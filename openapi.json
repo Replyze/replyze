@@ -1,0 +1,4524 @@
+{
+    "openapi": "3.1.0",
+    "info": {
+        "title": "Replyze API",
+        "version": "1.0.0",
+        "summary": "Conversations, messages, contacts, knowledge base and analytics of a Replyze workspace.",
+        "description": "The Replyze REST API reads and changes one workspace: its conversations and messages, contacts, knowledge base and analytics. It is part of the Pro and Business plans (and the free trial).\n\n**Authentication.** Make an API key in Settings → Developer (owners and admins) with the scopes it needs, and send it as `Authorization: Bearer rpz_live_...`. A key acts as the workspace, not as a person; it is shown once, stored hashed, and can be revoked at any time. A write scope includes the read scope of the same resource.\n\n**Requests and answers.** JSON in, JSON out. Single objects are returned as they are, each with an `object` field naming its type. Times are ISO 8601 in UTC.\n\n**Pagination.** Lists answer `{ \"object\": \"list\", \"data\": [...], \"has_more\": true, \"next_cursor\": \"...\" }`. Pass `cursor=<next_cursor>` for the next page and `limit` (1 to 100) for its size. Most lists are newest first; a conversation's messages are oldest first. `updated_since` (ISO 8601) returns only what changed since then, for syncing.\n\n**Errors.** `{ \"error\": { \"code\": \"insufficient_scope\", \"message\": \"...\", \"details\": { ... } } }` with the HTTP status: 400 bad request, 401 `missing_api_key` / `invalid_api_key` / `api_key_revoked` / `api_key_expired`, 403 `insufficient_scope` / `plan_required`, 404 `not_found` (also for another workspace's records), 409 `contact_exists` / `idempotency_in_progress`, 422 `validation_failed` (with `details.errors` per field) / `idempotency_key_reused`, 429 `rate_limited`, 500 `server_error`.\n\n**Idempotency.** Send `Idempotency-Key: <a unique value>` with a POST. Sent again with the same key in the next 24 hours, it returns the first answer (with `Idempotent-Replayed: true`) instead of doing it twice, so a retry never sends a message twice.\n\n**Rate limits.** 120 requests a minute per key. Every answer has `X-RateLimit-Limit`, `X-RateLimit-Remaining` and `X-RateLimit-Reset` (Unix time); a 429 has `Retry-After` (seconds).\n\n**Audit.** What a key changes, and every conversation or contact it reads, is in the workspace's audit log (Settings → Audit log) under the key's name.\n\n**Webhooks.** Replyze can also call you: see the webhooks section for the events, their payloads and how to verify the signature. Zapier, Make and n8n connect today with their HTTP modules: a webhook trigger (Catch Hook) for events, and HTTP requests with the API key for actions.",
+        "contact": {
+            "name": "Replyze support",
+            "email": "support@replyze.chat"
+        }
+    },
+    "servers": [
+        {
+            "url": "https://client.replyze.chat/api/v1"
+        }
+    ],
+    "security": [
+        {
+            "bearerAuth": []
+        }
+    ],
+    "tags": [
+        {
+            "name": "Account",
+            "description": "The API key, the team and the tags."
+        },
+        {
+            "name": "Conversations",
+            "description": "The inbox: list, read, start, assign, resolve, reopen and tag conversations."
+        },
+        {
+            "name": "Messages",
+            "description": "Read a conversation's messages; send replies and internal notes."
+        },
+        {
+            "name": "Contacts",
+            "description": "The workspace's customers and identified visitors."
+        },
+        {
+            "name": "Knowledge base",
+            "description": "Help center articles and categories, and a search over everything the AI answers from."
+        },
+        {
+            "name": "Analytics",
+            "description": "The Analytics page's headline numbers."
+        }
+    ],
+    "paths": {
+        "/me": {
+            "get": {
+                "operationId": "getMe",
+                "summary": "The API key",
+                "description": "The key the request is made with, its effective scopes and its workspace. Use it to test a connection.",
+                "tags": [
+                    "Account"
+                ],
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "headers": {
+                            "X-RateLimit-Limit": {
+                                "$ref": "#/components/headers/X-RateLimit-Limit"
+                            },
+                            "X-RateLimit-Remaining": {
+                                "$ref": "#/components/headers/X-RateLimit-Remaining"
+                            },
+                            "X-RateLimit-Reset": {
+                                "$ref": "#/components/headers/X-RateLimit-Reset"
+                            }
+                        },
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiKeyInfo"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/RateLimited"
+                    }
+                },
+                "x-scope": null,
+                "x-codeSamples": [
+                    {
+                        "lang": "curl",
+                        "label": "curl",
+                        "source": "curl -X GET 'https://client.replyze.chat/api/v1/me' \\\n  -H 'Authorization: Bearer $REPLYZE_API_KEY'"
+                    }
+                ]
+            }
+        },
+        "/agents": {
+            "get": {
+                "operationId": "listAgents",
+                "summary": "List teammates",
+                "description": "The teammates who can answer conversations (owners, admins and agents, not viewers), for `agent_id`.\n\nScope: `conversations:read`.",
+                "tags": [
+                    "Account"
+                ],
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "headers": {
+                            "X-RateLimit-Limit": {
+                                "$ref": "#/components/headers/X-RateLimit-Limit"
+                            },
+                            "X-RateLimit-Remaining": {
+                                "$ref": "#/components/headers/X-RateLimit-Remaining"
+                            },
+                            "X-RateLimit-Reset": {
+                                "$ref": "#/components/headers/X-RateLimit-Reset"
+                            }
+                        },
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "required": [
+                                        "object",
+                                        "data",
+                                        "has_more",
+                                        "next_cursor"
+                                    ],
+                                    "properties": {
+                                        "object": {
+                                            "const": "list"
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/Agent"
+                                            }
+                                        },
+                                        "has_more": {
+                                            "type": "boolean"
+                                        },
+                                        "next_cursor": {
+                                            "type": [
+                                                "string",
+                                                "null"
+                                            ]
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/RateLimited"
+                    }
+                },
+                "x-scope": "conversations:read",
+                "x-codeSamples": [
+                    {
+                        "lang": "curl",
+                        "label": "curl",
+                        "source": "curl -X GET 'https://client.replyze.chat/api/v1/agents' \\\n  -H 'Authorization: Bearer $REPLYZE_API_KEY'"
+                    }
+                ]
+            }
+        },
+        "/tags": {
+            "get": {
+                "operationId": "listTags",
+                "summary": "List tags",
+                "description": "The workspace's conversation tags.\n\nScope: `conversations:read`.",
+                "tags": [
+                    "Account"
+                ],
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "headers": {
+                            "X-RateLimit-Limit": {
+                                "$ref": "#/components/headers/X-RateLimit-Limit"
+                            },
+                            "X-RateLimit-Remaining": {
+                                "$ref": "#/components/headers/X-RateLimit-Remaining"
+                            },
+                            "X-RateLimit-Reset": {
+                                "$ref": "#/components/headers/X-RateLimit-Reset"
+                            }
+                        },
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "required": [
+                                        "object",
+                                        "data",
+                                        "has_more",
+                                        "next_cursor"
+                                    ],
+                                    "properties": {
+                                        "object": {
+                                            "const": "list"
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/Tag"
+                                            }
+                                        },
+                                        "has_more": {
+                                            "type": "boolean"
+                                        },
+                                        "next_cursor": {
+                                            "type": [
+                                                "string",
+                                                "null"
+                                            ]
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/RateLimited"
+                    }
+                },
+                "x-scope": "conversations:read",
+                "x-codeSamples": [
+                    {
+                        "lang": "curl",
+                        "label": "curl",
+                        "source": "curl -X GET 'https://client.replyze.chat/api/v1/tags' \\\n  -H 'Authorization: Bearer $REPLYZE_API_KEY'"
+                    }
+                ]
+            }
+        },
+        "/conversations": {
+            "get": {
+                "operationId": "listConversations",
+                "summary": "List conversations",
+                "description": "Conversations as the inbox lists them (with something the visitor or the team wrote; not spam unless `status=spam`), newest first.\n\nScope: `conversations:read`.",
+                "tags": [
+                    "Conversations"
+                ],
+                "parameters": [
+                    {
+                        "name": "status",
+                        "in": "query",
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "open",
+                                "pending",
+                                "snoozed",
+                                "resolved",
+                                "closed",
+                                "spam"
+                            ]
+                        },
+                        "description": "Only this status. `spam` lists the spam inbox."
+                    },
+                    {
+                        "name": "contact_id",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "description": "Only this contact's conversations."
+                    },
+                    {
+                        "name": "assigned_agent_id",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "description": "Only those assigned to this teammate."
+                    },
+                    {
+                        "name": "unassigned",
+                        "in": "query",
+                        "schema": {
+                            "type": "boolean"
+                        },
+                        "description": "Only those assigned to nobody."
+                    },
+                    {
+                        "name": "team_id",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "description": "Only those assigned to this team."
+                    },
+                    {
+                        "name": "channel",
+                        "in": "query",
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "web",
+                                "email",
+                                "whatsapp",
+                                "telegram",
+                                "facebook",
+                                "instagram",
+                                "viber",
+                                "sms"
+                            ]
+                        },
+                        "description": "Only this channel."
+                    },
+                    {
+                        "name": "tag_id",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "description": "Only those with this tag."
+                    },
+                    {
+                        "name": "q",
+                        "in": "query",
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 200
+                        },
+                        "description": "Matches the contact's name, email or phone, the subject, and what was said (not internal notes)."
+                    },
+                    {
+                        "$ref": "#/components/parameters/UpdatedSince"
+                    },
+                    {
+                        "name": "created_since",
+                        "in": "query",
+                        "schema": {
+                            "type": "string",
+                            "format": "date-time"
+                        },
+                        "description": "Only conversations started since then."
+                    },
+                    {
+                        "$ref": "#/components/parameters/Cursor"
+                    },
+                    {
+                        "$ref": "#/components/parameters/Limit"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "headers": {
+                            "X-RateLimit-Limit": {
+                                "$ref": "#/components/headers/X-RateLimit-Limit"
+                            },
+                            "X-RateLimit-Remaining": {
+                                "$ref": "#/components/headers/X-RateLimit-Remaining"
+                            },
+                            "X-RateLimit-Reset": {
+                                "$ref": "#/components/headers/X-RateLimit-Reset"
+                            }
+                        },
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "required": [
+                                        "object",
+                                        "data",
+                                        "has_more",
+                                        "next_cursor"
+                                    ],
+                                    "properties": {
+                                        "object": {
+                                            "const": "list"
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/Conversation"
+                                            }
+                                        },
+                                        "has_more": {
+                                            "type": "boolean"
+                                        },
+                                        "next_cursor": {
+                                            "type": [
+                                                "string",
+                                                "null"
+                                            ]
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/RateLimited"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationFailed"
+                    }
+                },
+                "x-scope": "conversations:read",
+                "x-codeSamples": [
+                    {
+                        "lang": "curl",
+                        "label": "curl",
+                        "source": "curl -X GET 'https://client.replyze.chat/api/v1/conversations?status=open&limit=25' \\\n  -H 'Authorization: Bearer $REPLYZE_API_KEY'"
+                    }
+                ]
+            },
+            "post": {
+                "operationId": "createConversation",
+                "summary": "Start a conversation",
+                "description": "Starts a conversation with a contact, opened by a message.\n\n- `from: \"agent\"` (the default): a message from the team, sent to the contact on the channel (the web chat when `channel_id` is left out; on email, WhatsApp, Telegram, Messenger or Instagram the contact must be reachable there).\n- `from: \"contact\"`: a message from the contact (a form submission, a call note): it lands in the inbox like any visitor message, notifies the team and runs the automations. The AI does not reply to it.\n\nThe contact is `contact_id`, or found by `contact.email` (then `contact.phone`) and made when there is none.\n\nScope: `conversations:write`.",
+                "tags": [
+                    "Conversations"
+                ],
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/IdempotencyKey"
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "headers": {
+                            "X-RateLimit-Limit": {
+                                "$ref": "#/components/headers/X-RateLimit-Limit"
+                            },
+                            "X-RateLimit-Remaining": {
+                                "$ref": "#/components/headers/X-RateLimit-Remaining"
+                            },
+                            "X-RateLimit-Reset": {
+                                "$ref": "#/components/headers/X-RateLimit-Reset"
+                            }
+                        },
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ConversationCreated"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/RateLimited"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationFailed"
+                    }
+                },
+                "x-scope": "conversations:write",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "message"
+                                ],
+                                "properties": {
+                                    "contact_id": {
+                                        "type": "integer",
+                                        "description": "An existing contact. Or send `contact`."
+                                    },
+                                    "contact": {
+                                        "type": "object",
+                                        "properties": {
+                                            "email": {
+                                                "type": "string",
+                                                "format": "email"
+                                            },
+                                            "name": {
+                                                "type": "string"
+                                            },
+                                            "phone": {
+                                                "type": "string"
+                                            }
+                                        },
+                                        "description": "Found by email (else phone) or made."
+                                    },
+                                    "channel_id": {
+                                        "type": "integer",
+                                        "description": "One of the workspace's channels. Default: the web chat."
+                                    },
+                                    "subject": {
+                                        "type": "string",
+                                        "maxLength": 255,
+                                        "description": "The subject (the email subject on email)."
+                                    },
+                                    "message": {
+                                        "type": "string",
+                                        "maxLength": 10000,
+                                        "description": "The opening message."
+                                    },
+                                    "from": {
+                                        "type": "string",
+                                        "enum": [
+                                            "agent",
+                                            "contact"
+                                        ],
+                                        "default": "agent"
+                                    },
+                                    "agent_id": {
+                                        "type": "integer",
+                                        "description": "Assign it to this teammate; a message from the team is from them."
+                                    }
+                                },
+                                "example": {
+                                    "contact": {
+                                        "email": "jane@example.com",
+                                        "name": "Jane Doe"
+                                    },
+                                    "subject": "Your order #1042",
+                                    "message": "Hi Jane, your order has shipped!"
+                                }
+                            }
+                        }
+                    }
+                },
+                "x-codeSamples": [
+                    {
+                        "lang": "curl",
+                        "label": "curl",
+                        "source": "curl -X POST 'https://client.replyze.chat/api/v1/conversations' \\\n  -H 'Authorization: Bearer $REPLYZE_API_KEY' \\\n  -H 'Content-Type: application/json' \\\n  -H \"Idempotency-Key: $(uuidgen)\" \\\n  -d '{\"contact\":{\"email\":\"jane@example.com\",\"name\":\"Jane Doe\"},\"subject\":\"Your order #1042\",\"message\":\"Hi Jane, your order has shipped!\"}'"
+                    }
+                ]
+            }
+        },
+        "/conversations/{id}": {
+            "get": {
+                "operationId": "getConversation",
+                "summary": "Get a conversation",
+                "description": "One conversation of the workspace (404 for any other). Logged in the audit log.\n\nScope: `conversations:read`.",
+                "tags": [
+                    "Conversations"
+                ],
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/Id"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "headers": {
+                            "X-RateLimit-Limit": {
+                                "$ref": "#/components/headers/X-RateLimit-Limit"
+                            },
+                            "X-RateLimit-Remaining": {
+                                "$ref": "#/components/headers/X-RateLimit-Remaining"
+                            },
+                            "X-RateLimit-Reset": {
+                                "$ref": "#/components/headers/X-RateLimit-Reset"
+                            }
+                        },
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Conversation"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/RateLimited"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    }
+                },
+                "x-scope": "conversations:read",
+                "x-codeSamples": [
+                    {
+                        "lang": "curl",
+                        "label": "curl",
+                        "source": "curl -X GET 'https://client.replyze.chat/api/v1/conversations/123' \\\n  -H 'Authorization: Bearer $REPLYZE_API_KEY'"
+                    }
+                ]
+            }
+        },
+        "/conversations/{id}/assign": {
+            "post": {
+                "operationId": "assignConversation",
+                "summary": "Assign a conversation",
+                "description": "Give it to a teammate (`agent_id`) and/or a team (`team_id`; the team's routing picks a teammate when it assigns automatically). `null` takes it off them. At least one of the two.\n\nScope: `conversations:write`.",
+                "tags": [
+                    "Conversations"
+                ],
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/Id"
+                    },
+                    {
+                        "$ref": "#/components/parameters/IdempotencyKey"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "headers": {
+                            "X-RateLimit-Limit": {
+                                "$ref": "#/components/headers/X-RateLimit-Limit"
+                            },
+                            "X-RateLimit-Remaining": {
+                                "$ref": "#/components/headers/X-RateLimit-Remaining"
+                            },
+                            "X-RateLimit-Reset": {
+                                "$ref": "#/components/headers/X-RateLimit-Reset"
+                            }
+                        },
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Conversation"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/RateLimited"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationFailed"
+                    }
+                },
+                "x-scope": "conversations:write",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "agent_id": {
+                                        "type": [
+                                            "integer",
+                                            "null"
+                                        ]
+                                    },
+                                    "team_id": {
+                                        "type": [
+                                            "integer",
+                                            "null"
+                                        ]
+                                    }
+                                },
+                                "example": {
+                                    "agent_id": 12
+                                }
+                            }
+                        }
+                    }
+                },
+                "x-codeSamples": [
+                    {
+                        "lang": "curl",
+                        "label": "curl",
+                        "source": "curl -X POST 'https://client.replyze.chat/api/v1/conversations/123/assign' \\\n  -H 'Authorization: Bearer $REPLYZE_API_KEY' \\\n  -H 'Content-Type: application/json' \\\n  -H \"Idempotency-Key: $(uuidgen)\" \\\n  -d '{\"agent_id\":12}'"
+                    }
+                ]
+            }
+        },
+        "/conversations/{id}/resolve": {
+            "post": {
+                "operationId": "resolveConversation",
+                "summary": "Resolve a conversation",
+                "description": "Marks it resolved. When the workspace has them switched on, the visitor gets the closing message and the rating request, as when the team resolves it in the inbox.\n\nScope: `conversations:write`.",
+                "tags": [
+                    "Conversations"
+                ],
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/Id"
+                    },
+                    {
+                        "$ref": "#/components/parameters/IdempotencyKey"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "headers": {
+                            "X-RateLimit-Limit": {
+                                "$ref": "#/components/headers/X-RateLimit-Limit"
+                            },
+                            "X-RateLimit-Remaining": {
+                                "$ref": "#/components/headers/X-RateLimit-Remaining"
+                            },
+                            "X-RateLimit-Reset": {
+                                "$ref": "#/components/headers/X-RateLimit-Reset"
+                            }
+                        },
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Conversation"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/RateLimited"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    }
+                },
+                "x-scope": "conversations:write",
+                "x-codeSamples": [
+                    {
+                        "lang": "curl",
+                        "label": "curl",
+                        "source": "curl -X POST 'https://client.replyze.chat/api/v1/conversations/123/resolve' \\\n  -H 'Authorization: Bearer $REPLYZE_API_KEY' \\\n  -H \"Idempotency-Key: $(uuidgen)\""
+                    }
+                ]
+            }
+        },
+        "/conversations/{id}/reopen": {
+            "post": {
+                "operationId": "reopenConversation",
+                "summary": "Reopen a conversation",
+                "description": "Opens a resolved conversation again.\n\nScope: `conversations:write`.",
+                "tags": [
+                    "Conversations"
+                ],
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/Id"
+                    },
+                    {
+                        "$ref": "#/components/parameters/IdempotencyKey"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "headers": {
+                            "X-RateLimit-Limit": {
+                                "$ref": "#/components/headers/X-RateLimit-Limit"
+                            },
+                            "X-RateLimit-Remaining": {
+                                "$ref": "#/components/headers/X-RateLimit-Remaining"
+                            },
+                            "X-RateLimit-Reset": {
+                                "$ref": "#/components/headers/X-RateLimit-Reset"
+                            }
+                        },
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Conversation"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/RateLimited"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    }
+                },
+                "x-scope": "conversations:write",
+                "x-codeSamples": [
+                    {
+                        "lang": "curl",
+                        "label": "curl",
+                        "source": "curl -X POST 'https://client.replyze.chat/api/v1/conversations/123/reopen' \\\n  -H 'Authorization: Bearer $REPLYZE_API_KEY' \\\n  -H \"Idempotency-Key: $(uuidgen)\""
+                    }
+                ]
+            }
+        },
+        "/conversations/{id}/tags": {
+            "post": {
+                "operationId": "tagConversation",
+                "summary": "Tag a conversation",
+                "description": "Adds a tag: an existing one by `tag_id`, or by `name` (made when the workspace has no tag with it).\n\nScope: `conversations:write`.",
+                "tags": [
+                    "Conversations"
+                ],
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/Id"
+                    },
+                    {
+                        "$ref": "#/components/parameters/IdempotencyKey"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "headers": {
+                            "X-RateLimit-Limit": {
+                                "$ref": "#/components/headers/X-RateLimit-Limit"
+                            },
+                            "X-RateLimit-Remaining": {
+                                "$ref": "#/components/headers/X-RateLimit-Remaining"
+                            },
+                            "X-RateLimit-Reset": {
+                                "$ref": "#/components/headers/X-RateLimit-Reset"
+                            }
+                        },
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Conversation"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/RateLimited"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationFailed"
+                    }
+                },
+                "x-scope": "conversations:write",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "maxLength": 50
+                                    },
+                                    "tag_id": {
+                                        "type": "integer"
+                                    }
+                                },
+                                "example": {
+                                    "name": "vip"
+                                }
+                            }
+                        }
+                    }
+                },
+                "x-codeSamples": [
+                    {
+                        "lang": "curl",
+                        "label": "curl",
+                        "source": "curl -X POST 'https://client.replyze.chat/api/v1/conversations/123/tags' \\\n  -H 'Authorization: Bearer $REPLYZE_API_KEY' \\\n  -H 'Content-Type: application/json' \\\n  -H \"Idempotency-Key: $(uuidgen)\" \\\n  -d '{\"name\":\"vip\"}'"
+                    }
+                ]
+            }
+        },
+        "/conversations/{id}/tags/{tagId}": {
+            "delete": {
+                "operationId": "untagConversation",
+                "summary": "Remove a tag",
+                "description": "Takes the tag off the conversation (the tag itself stays).\n\nScope: `conversations:write`.",
+                "tags": [
+                    "Conversations"
+                ],
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/Id"
+                    },
+                    {
+                        "name": "tagId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "headers": {
+                            "X-RateLimit-Limit": {
+                                "$ref": "#/components/headers/X-RateLimit-Limit"
+                            },
+                            "X-RateLimit-Remaining": {
+                                "$ref": "#/components/headers/X-RateLimit-Remaining"
+                            },
+                            "X-RateLimit-Reset": {
+                                "$ref": "#/components/headers/X-RateLimit-Reset"
+                            }
+                        },
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Conversation"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/RateLimited"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    }
+                },
+                "x-scope": "conversations:write",
+                "x-codeSamples": [
+                    {
+                        "lang": "curl",
+                        "label": "curl",
+                        "source": "curl -X DELETE 'https://client.replyze.chat/api/v1/conversations/123/tags/7' \\\n  -H 'Authorization: Bearer $REPLYZE_API_KEY'"
+                    }
+                ]
+            }
+        },
+        "/conversations/{id}/messages": {
+            "get": {
+                "operationId": "listMessages",
+                "summary": "List messages",
+                "description": "The conversation's messages, oldest first (50 a page by default): the visitor's, the team's, the AI's and the team's internal notes (`is_internal_note`).\n\nScope: `conversations:read`.",
+                "tags": [
+                    "Messages"
+                ],
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/Id"
+                    },
+                    {
+                        "name": "include_notes",
+                        "in": "query",
+                        "schema": {
+                            "type": "boolean",
+                            "default": true
+                        },
+                        "description": "false leaves internal notes out."
+                    },
+                    {
+                        "$ref": "#/components/parameters/UpdatedSince"
+                    },
+                    {
+                        "$ref": "#/components/parameters/Cursor"
+                    },
+                    {
+                        "$ref": "#/components/parameters/Limit"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "headers": {
+                            "X-RateLimit-Limit": {
+                                "$ref": "#/components/headers/X-RateLimit-Limit"
+                            },
+                            "X-RateLimit-Remaining": {
+                                "$ref": "#/components/headers/X-RateLimit-Remaining"
+                            },
+                            "X-RateLimit-Reset": {
+                                "$ref": "#/components/headers/X-RateLimit-Reset"
+                            }
+                        },
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "required": [
+                                        "object",
+                                        "data",
+                                        "has_more",
+                                        "next_cursor"
+                                    ],
+                                    "properties": {
+                                        "object": {
+                                            "const": "list"
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/Message"
+                                            }
+                                        },
+                                        "has_more": {
+                                            "type": "boolean"
+                                        },
+                                        "next_cursor": {
+                                            "type": [
+                                                "string",
+                                                "null"
+                                            ]
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/RateLimited"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationFailed"
+                    }
+                },
+                "x-scope": "conversations:read",
+                "x-codeSamples": [
+                    {
+                        "lang": "curl",
+                        "label": "curl",
+                        "source": "curl -X GET 'https://client.replyze.chat/api/v1/conversations/123/messages' \\\n  -H 'Authorization: Bearer $REPLYZE_API_KEY'"
+                    }
+                ]
+            },
+            "post": {
+                "operationId": "sendMessage",
+                "summary": "Send a reply or a note",
+                "description": "`type: \"reply\"` (the default) goes to the visitor on the conversation's channel (widget, email, WhatsApp, Telegram, Messenger, Instagram) exactly as a reply from the inbox: the team sees it live, a resolved conversation opens again. `type: \"note\"` is an internal note: the team sees it, the visitor never does.\n\nWith `agent_id` the message is from that teammate (and a reply assigns them an unassigned conversation); without it, from the team.\n\nScope: `conversations:write`.",
+                "tags": [
+                    "Messages"
+                ],
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/Id"
+                    },
+                    {
+                        "$ref": "#/components/parameters/IdempotencyKey"
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "headers": {
+                            "X-RateLimit-Limit": {
+                                "$ref": "#/components/headers/X-RateLimit-Limit"
+                            },
+                            "X-RateLimit-Remaining": {
+                                "$ref": "#/components/headers/X-RateLimit-Remaining"
+                            },
+                            "X-RateLimit-Reset": {
+                                "$ref": "#/components/headers/X-RateLimit-Reset"
+                            }
+                        },
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Message"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/RateLimited"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationFailed"
+                    }
+                },
+                "x-scope": "conversations:write",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "content"
+                                ],
+                                "properties": {
+                                    "content": {
+                                        "type": "string",
+                                        "maxLength": 10000
+                                    },
+                                    "type": {
+                                        "type": "string",
+                                        "enum": [
+                                            "reply",
+                                            "note"
+                                        ],
+                                        "default": "reply"
+                                    },
+                                    "agent_id": {
+                                        "type": "integer"
+                                    }
+                                },
+                                "example": {
+                                    "content": "Thanks for waiting! Your refund is on its way."
+                                }
+                            }
+                        }
+                    }
+                },
+                "x-codeSamples": [
+                    {
+                        "lang": "curl",
+                        "label": "curl",
+                        "source": "curl -X POST 'https://client.replyze.chat/api/v1/conversations/123/messages' \\\n  -H 'Authorization: Bearer $REPLYZE_API_KEY' \\\n  -H 'Content-Type: application/json' \\\n  -H \"Idempotency-Key: $(uuidgen)\" \\\n  -d '{\"content\":\"Thanks for waiting! Your refund is on its way.\"}'"
+                    }
+                ]
+            }
+        },
+        "/conversations/{id}/messages/{messageId}": {
+            "get": {
+                "operationId": "getMessage",
+                "summary": "Get a message",
+                "description": "One message of the conversation.\n\nScope: `conversations:read`.",
+                "tags": [
+                    "Messages"
+                ],
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/Id"
+                    },
+                    {
+                        "name": "messageId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "headers": {
+                            "X-RateLimit-Limit": {
+                                "$ref": "#/components/headers/X-RateLimit-Limit"
+                            },
+                            "X-RateLimit-Remaining": {
+                                "$ref": "#/components/headers/X-RateLimit-Remaining"
+                            },
+                            "X-RateLimit-Reset": {
+                                "$ref": "#/components/headers/X-RateLimit-Reset"
+                            }
+                        },
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Message"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/RateLimited"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    }
+                },
+                "x-scope": "conversations:read",
+                "x-codeSamples": [
+                    {
+                        "lang": "curl",
+                        "label": "curl",
+                        "source": "curl -X GET 'https://client.replyze.chat/api/v1/conversations/123/messages/456' \\\n  -H 'Authorization: Bearer $REPLYZE_API_KEY'"
+                    }
+                ]
+            }
+        },
+        "/contacts": {
+            "get": {
+                "operationId": "listContacts",
+                "summary": "List contacts",
+                "description": "Contacts, newest first. Anonymous visitors (no email, no phone, no name) only with `include_anonymous=true`.\n\nScope: `contacts:read`.",
+                "tags": [
+                    "Contacts"
+                ],
+                "parameters": [
+                    {
+                        "name": "q",
+                        "in": "query",
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 200
+                        },
+                        "description": "Matches name, email, phone or company."
+                    },
+                    {
+                        "name": "email",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "The contact with exactly this email (any letter case)."
+                    },
+                    {
+                        "name": "include_anonymous",
+                        "in": "query",
+                        "schema": {
+                            "type": "boolean",
+                            "default": false
+                        },
+                        "description": "Include anonymous visitors."
+                    },
+                    {
+                        "$ref": "#/components/parameters/UpdatedSince"
+                    },
+                    {
+                        "$ref": "#/components/parameters/Cursor"
+                    },
+                    {
+                        "$ref": "#/components/parameters/Limit"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "headers": {
+                            "X-RateLimit-Limit": {
+                                "$ref": "#/components/headers/X-RateLimit-Limit"
+                            },
+                            "X-RateLimit-Remaining": {
+                                "$ref": "#/components/headers/X-RateLimit-Remaining"
+                            },
+                            "X-RateLimit-Reset": {
+                                "$ref": "#/components/headers/X-RateLimit-Reset"
+                            }
+                        },
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "required": [
+                                        "object",
+                                        "data",
+                                        "has_more",
+                                        "next_cursor"
+                                    ],
+                                    "properties": {
+                                        "object": {
+                                            "const": "list"
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/Contact"
+                                            }
+                                        },
+                                        "has_more": {
+                                            "type": "boolean"
+                                        },
+                                        "next_cursor": {
+                                            "type": [
+                                                "string",
+                                                "null"
+                                            ]
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/RateLimited"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationFailed"
+                    }
+                },
+                "x-scope": "contacts:read",
+                "x-codeSamples": [
+                    {
+                        "lang": "curl",
+                        "label": "curl",
+                        "source": "curl -X GET 'https://client.replyze.chat/api/v1/contacts' \\\n  -H 'Authorization: Bearer $REPLYZE_API_KEY'"
+                    }
+                ]
+            },
+            "post": {
+                "operationId": "createContact",
+                "summary": "Create a contact",
+                "description": "A new contact. An email another contact has is refused with 409 `contact_exists` (its id in `details.contact_id`): update that one instead.\n\nScope: `contacts:write`.",
+                "tags": [
+                    "Contacts"
+                ],
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/IdempotencyKey"
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "headers": {
+                            "X-RateLimit-Limit": {
+                                "$ref": "#/components/headers/X-RateLimit-Limit"
+                            },
+                            "X-RateLimit-Remaining": {
+                                "$ref": "#/components/headers/X-RateLimit-Remaining"
+                            },
+                            "X-RateLimit-Reset": {
+                                "$ref": "#/components/headers/X-RateLimit-Reset"
+                            }
+                        },
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Contact"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/RateLimited"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationFailed"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/Conflict"
+                    }
+                },
+                "x-scope": "contacts:write",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ContactInput"
+                            }
+                        }
+                    }
+                },
+                "x-codeSamples": [
+                    {
+                        "lang": "curl",
+                        "label": "curl",
+                        "source": "curl -X POST 'https://client.replyze.chat/api/v1/contacts' \\\n  -H 'Authorization: Bearer $REPLYZE_API_KEY' \\\n  -H 'Content-Type: application/json' \\\n  -H \"Idempotency-Key: $(uuidgen)\" \\\n  -d '{\"name\":\"Jane Doe\",\"email\":\"jane@example.com\",\"company\":\"Acme\",\"custom_data\":{\"plan\":\"gold\",\"orders\":3}}'"
+                    }
+                ]
+            }
+        },
+        "/contacts/{id}": {
+            "get": {
+                "operationId": "getContact",
+                "summary": "Get a contact",
+                "description": "One contact. Logged in the audit log.\n\nScope: `contacts:read`.",
+                "tags": [
+                    "Contacts"
+                ],
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/Id"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "headers": {
+                            "X-RateLimit-Limit": {
+                                "$ref": "#/components/headers/X-RateLimit-Limit"
+                            },
+                            "X-RateLimit-Remaining": {
+                                "$ref": "#/components/headers/X-RateLimit-Remaining"
+                            },
+                            "X-RateLimit-Reset": {
+                                "$ref": "#/components/headers/X-RateLimit-Reset"
+                            }
+                        },
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Contact"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/RateLimited"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    }
+                },
+                "x-scope": "contacts:read",
+                "x-codeSamples": [
+                    {
+                        "lang": "curl",
+                        "label": "curl",
+                        "source": "curl -X GET 'https://client.replyze.chat/api/v1/contacts/123' \\\n  -H 'Authorization: Bearer $REPLYZE_API_KEY'"
+                    }
+                ]
+            },
+            "patch": {
+                "operationId": "updateContact",
+                "summary": "Update a contact",
+                "description": "Changes the fields sent. `custom_data` is merged: keys not sent stay, a key sent as null is removed. `tags` replaces the list.\n\nScope: `contacts:write`.",
+                "tags": [
+                    "Contacts"
+                ],
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/Id"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "headers": {
+                            "X-RateLimit-Limit": {
+                                "$ref": "#/components/headers/X-RateLimit-Limit"
+                            },
+                            "X-RateLimit-Remaining": {
+                                "$ref": "#/components/headers/X-RateLimit-Remaining"
+                            },
+                            "X-RateLimit-Reset": {
+                                "$ref": "#/components/headers/X-RateLimit-Reset"
+                            }
+                        },
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Contact"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/RateLimited"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationFailed"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/Conflict"
+                    }
+                },
+                "x-scope": "contacts:write",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ContactInput"
+                            }
+                        }
+                    }
+                },
+                "x-codeSamples": [
+                    {
+                        "lang": "curl",
+                        "label": "curl",
+                        "source": "curl -X PATCH 'https://client.replyze.chat/api/v1/contacts/123' \\\n  -H 'Authorization: Bearer $REPLYZE_API_KEY' \\\n  -H 'Content-Type: application/json' \\\n  -d '{\"name\":\"Jane Doe\",\"email\":\"jane@example.com\",\"company\":\"Acme\",\"custom_data\":{\"plan\":\"gold\",\"orders\":3}}'"
+                    }
+                ]
+            }
+        },
+        "/articles": {
+            "get": {
+                "operationId": "listArticles",
+                "summary": "List articles",
+                "description": "Knowledge base articles, newest first, without their content (get one for it).\n\nScope: `knowledge:read`.",
+                "tags": [
+                    "Knowledge base"
+                ],
+                "parameters": [
+                    {
+                        "name": "status",
+                        "in": "query",
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "published",
+                                "draft"
+                            ]
+                        },
+                        "description": "Only this status."
+                    },
+                    {
+                        "name": "category_id",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "description": "Only this category."
+                    },
+                    {
+                        "name": "locale",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "Only this language (en, de, pt-BR...)."
+                    },
+                    {
+                        "name": "q",
+                        "in": "query",
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 200
+                        },
+                        "description": "Matches the title or the content."
+                    },
+                    {
+                        "$ref": "#/components/parameters/UpdatedSince"
+                    },
+                    {
+                        "$ref": "#/components/parameters/Cursor"
+                    },
+                    {
+                        "$ref": "#/components/parameters/Limit"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "headers": {
+                            "X-RateLimit-Limit": {
+                                "$ref": "#/components/headers/X-RateLimit-Limit"
+                            },
+                            "X-RateLimit-Remaining": {
+                                "$ref": "#/components/headers/X-RateLimit-Remaining"
+                            },
+                            "X-RateLimit-Reset": {
+                                "$ref": "#/components/headers/X-RateLimit-Reset"
+                            }
+                        },
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "required": [
+                                        "object",
+                                        "data",
+                                        "has_more",
+                                        "next_cursor"
+                                    ],
+                                    "properties": {
+                                        "object": {
+                                            "const": "list"
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/Article"
+                                            }
+                                        },
+                                        "has_more": {
+                                            "type": "boolean"
+                                        },
+                                        "next_cursor": {
+                                            "type": [
+                                                "string",
+                                                "null"
+                                            ]
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/RateLimited"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationFailed"
+                    }
+                },
+                "x-scope": "knowledge:read",
+                "x-codeSamples": [
+                    {
+                        "lang": "curl",
+                        "label": "curl",
+                        "source": "curl -X GET 'https://client.replyze.chat/api/v1/articles' \\\n  -H 'Authorization: Bearer $REPLYZE_API_KEY'"
+                    }
+                ]
+            },
+            "post": {
+                "operationId": "createArticle",
+                "summary": "Create an article",
+                "description": "A new article, a draft unless `status` is published. Its slug comes from the title unless given; published, it is on the public help center (when that is on) and the AI answers from it.\n\nScope: `knowledge:write`.",
+                "tags": [
+                    "Knowledge base"
+                ],
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/IdempotencyKey"
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "headers": {
+                            "X-RateLimit-Limit": {
+                                "$ref": "#/components/headers/X-RateLimit-Limit"
+                            },
+                            "X-RateLimit-Remaining": {
+                                "$ref": "#/components/headers/X-RateLimit-Remaining"
+                            },
+                            "X-RateLimit-Reset": {
+                                "$ref": "#/components/headers/X-RateLimit-Reset"
+                            }
+                        },
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Article"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/RateLimited"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationFailed"
+                    }
+                },
+                "x-scope": "knowledge:write",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ArticleInput"
+                            }
+                        }
+                    }
+                },
+                "x-codeSamples": [
+                    {
+                        "lang": "curl",
+                        "label": "curl",
+                        "source": "curl -X POST 'https://client.replyze.chat/api/v1/articles' \\\n  -H 'Authorization: Bearer $REPLYZE_API_KEY' \\\n  -H 'Content-Type: application/json' \\\n  -H \"Idempotency-Key: $(uuidgen)\" \\\n  -d '{\"title\":\"How long does shipping take?\",\"content\":\"Orders ship within 24 hours.\\n\\nDelivery takes 2 to 4 business days.\",\"status\":\"published\"}'"
+                    }
+                ]
+            }
+        },
+        "/articles/{id}": {
+            "get": {
+                "operationId": "getArticle",
+                "summary": "Get an article",
+                "description": "One article with its content (Markdown or HTML, as written).\n\nScope: `knowledge:read`.",
+                "tags": [
+                    "Knowledge base"
+                ],
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/Id"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "headers": {
+                            "X-RateLimit-Limit": {
+                                "$ref": "#/components/headers/X-RateLimit-Limit"
+                            },
+                            "X-RateLimit-Remaining": {
+                                "$ref": "#/components/headers/X-RateLimit-Remaining"
+                            },
+                            "X-RateLimit-Reset": {
+                                "$ref": "#/components/headers/X-RateLimit-Reset"
+                            }
+                        },
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Article"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/RateLimited"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    }
+                },
+                "x-scope": "knowledge:read",
+                "x-codeSamples": [
+                    {
+                        "lang": "curl",
+                        "label": "curl",
+                        "source": "curl -X GET 'https://client.replyze.chat/api/v1/articles/123' \\\n  -H 'Authorization: Bearer $REPLYZE_API_KEY'"
+                    }
+                ]
+            },
+            "patch": {
+                "operationId": "updateArticle",
+                "summary": "Update an article",
+                "description": "Changes the fields sent. Every change is kept in the article's history in the editor.\n\nScope: `knowledge:write`.",
+                "tags": [
+                    "Knowledge base"
+                ],
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/Id"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "headers": {
+                            "X-RateLimit-Limit": {
+                                "$ref": "#/components/headers/X-RateLimit-Limit"
+                            },
+                            "X-RateLimit-Remaining": {
+                                "$ref": "#/components/headers/X-RateLimit-Remaining"
+                            },
+                            "X-RateLimit-Reset": {
+                                "$ref": "#/components/headers/X-RateLimit-Reset"
+                            }
+                        },
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Article"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/RateLimited"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationFailed"
+                    }
+                },
+                "x-scope": "knowledge:write",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ArticleInput"
+                            }
+                        }
+                    }
+                },
+                "x-codeSamples": [
+                    {
+                        "lang": "curl",
+                        "label": "curl",
+                        "source": "curl -X PATCH 'https://client.replyze.chat/api/v1/articles/123' \\\n  -H 'Authorization: Bearer $REPLYZE_API_KEY' \\\n  -H 'Content-Type: application/json' \\\n  -d '{\"title\":\"How long does shipping take?\",\"content\":\"Orders ship within 24 hours.\\n\\nDelivery takes 2 to 4 business days.\",\"status\":\"published\"}'"
+                    }
+                ]
+            }
+        },
+        "/categories": {
+            "get": {
+                "operationId": "listCategories",
+                "summary": "List categories",
+                "description": "Every category, in the order the help center shows them (one page).\n\nScope: `knowledge:read`.",
+                "tags": [
+                    "Knowledge base"
+                ],
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "headers": {
+                            "X-RateLimit-Limit": {
+                                "$ref": "#/components/headers/X-RateLimit-Limit"
+                            },
+                            "X-RateLimit-Remaining": {
+                                "$ref": "#/components/headers/X-RateLimit-Remaining"
+                            },
+                            "X-RateLimit-Reset": {
+                                "$ref": "#/components/headers/X-RateLimit-Reset"
+                            }
+                        },
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "required": [
+                                        "object",
+                                        "data",
+                                        "has_more",
+                                        "next_cursor"
+                                    ],
+                                    "properties": {
+                                        "object": {
+                                            "const": "list"
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/Category"
+                                            }
+                                        },
+                                        "has_more": {
+                                            "type": "boolean"
+                                        },
+                                        "next_cursor": {
+                                            "type": [
+                                                "string",
+                                                "null"
+                                            ]
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/RateLimited"
+                    }
+                },
+                "x-scope": "knowledge:read",
+                "x-codeSamples": [
+                    {
+                        "lang": "curl",
+                        "label": "curl",
+                        "source": "curl -X GET 'https://client.replyze.chat/api/v1/categories' \\\n  -H 'Authorization: Bearer $REPLYZE_API_KEY'"
+                    }
+                ]
+            },
+            "post": {
+                "operationId": "createCategory",
+                "summary": "Create a category",
+                "description": "A new category.\n\nScope: `knowledge:write`.",
+                "tags": [
+                    "Knowledge base"
+                ],
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/IdempotencyKey"
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "headers": {
+                            "X-RateLimit-Limit": {
+                                "$ref": "#/components/headers/X-RateLimit-Limit"
+                            },
+                            "X-RateLimit-Remaining": {
+                                "$ref": "#/components/headers/X-RateLimit-Remaining"
+                            },
+                            "X-RateLimit-Reset": {
+                                "$ref": "#/components/headers/X-RateLimit-Reset"
+                            }
+                        },
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Category"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/RateLimited"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationFailed"
+                    }
+                },
+                "x-scope": "knowledge:write",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "name"
+                                ],
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "maxLength": 255
+                                    },
+                                    "description": {
+                                        "type": [
+                                            "string",
+                                            "null"
+                                        ]
+                                    },
+                                    "sort_order": {
+                                        "type": "integer",
+                                        "minimum": 0
+                                    }
+                                },
+                                "example": {
+                                    "name": "Shipping",
+                                    "description": "Delivery times and costs"
+                                }
+                            }
+                        }
+                    }
+                },
+                "x-codeSamples": [
+                    {
+                        "lang": "curl",
+                        "label": "curl",
+                        "source": "curl -X POST 'https://client.replyze.chat/api/v1/categories' \\\n  -H 'Authorization: Bearer $REPLYZE_API_KEY' \\\n  -H 'Content-Type: application/json' \\\n  -H \"Idempotency-Key: $(uuidgen)\" \\\n  -d '{\"name\":\"Shipping\",\"description\":\"Delivery times and costs\"}'"
+                    }
+                ]
+            }
+        },
+        "/categories/{id}": {
+            "get": {
+                "operationId": "getCategory",
+                "summary": "Get a category",
+                "description": "One category.\n\nScope: `knowledge:read`.",
+                "tags": [
+                    "Knowledge base"
+                ],
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/Id"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "headers": {
+                            "X-RateLimit-Limit": {
+                                "$ref": "#/components/headers/X-RateLimit-Limit"
+                            },
+                            "X-RateLimit-Remaining": {
+                                "$ref": "#/components/headers/X-RateLimit-Remaining"
+                            },
+                            "X-RateLimit-Reset": {
+                                "$ref": "#/components/headers/X-RateLimit-Reset"
+                            }
+                        },
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Category"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/RateLimited"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    }
+                },
+                "x-scope": "knowledge:read",
+                "x-codeSamples": [
+                    {
+                        "lang": "curl",
+                        "label": "curl",
+                        "source": "curl -X GET 'https://client.replyze.chat/api/v1/categories/123' \\\n  -H 'Authorization: Bearer $REPLYZE_API_KEY'"
+                    }
+                ]
+            },
+            "patch": {
+                "operationId": "updateCategory",
+                "summary": "Update a category",
+                "description": "Changes the fields sent; a new name gives it a new slug.\n\nScope: `knowledge:write`.",
+                "tags": [
+                    "Knowledge base"
+                ],
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/Id"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "headers": {
+                            "X-RateLimit-Limit": {
+                                "$ref": "#/components/headers/X-RateLimit-Limit"
+                            },
+                            "X-RateLimit-Remaining": {
+                                "$ref": "#/components/headers/X-RateLimit-Remaining"
+                            },
+                            "X-RateLimit-Reset": {
+                                "$ref": "#/components/headers/X-RateLimit-Reset"
+                            }
+                        },
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Category"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/RateLimited"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationFailed"
+                    }
+                },
+                "x-scope": "knowledge:write",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "maxLength": 255
+                                    },
+                                    "description": {
+                                        "type": [
+                                            "string",
+                                            "null"
+                                        ]
+                                    },
+                                    "sort_order": {
+                                        "type": "integer",
+                                        "minimum": 0
+                                    }
+                                },
+                                "example": {
+                                    "sort_order": 1
+                                }
+                            }
+                        }
+                    }
+                },
+                "x-codeSamples": [
+                    {
+                        "lang": "curl",
+                        "label": "curl",
+                        "source": "curl -X PATCH 'https://client.replyze.chat/api/v1/categories/123' \\\n  -H 'Authorization: Bearer $REPLYZE_API_KEY' \\\n  -H 'Content-Type: application/json' \\\n  -d '{\"sort_order\":1}'"
+                    }
+                ]
+            }
+        },
+        "/knowledge/search": {
+            "get": {
+                "operationId": "searchKnowledge",
+                "summary": "Search knowledge",
+                "description": "What the AI would answer a question from: published articles first, then the best passages of the website pages and files it learned, each with where it is from.\n\nScope: `knowledge:read`.",
+                "tags": [
+                    "Knowledge base"
+                ],
+                "parameters": [
+                    {
+                        "name": "q",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "minLength": 2,
+                            "maxLength": 500
+                        },
+                        "description": "The question.",
+                        "example": "how long does shipping take"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "headers": {
+                            "X-RateLimit-Limit": {
+                                "$ref": "#/components/headers/X-RateLimit-Limit"
+                            },
+                            "X-RateLimit-Remaining": {
+                                "$ref": "#/components/headers/X-RateLimit-Remaining"
+                            },
+                            "X-RateLimit-Reset": {
+                                "$ref": "#/components/headers/X-RateLimit-Reset"
+                            }
+                        },
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "required": [
+                                        "object",
+                                        "data",
+                                        "has_more",
+                                        "next_cursor"
+                                    ],
+                                    "properties": {
+                                        "object": {
+                                            "const": "list"
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/KnowledgeResult"
+                                            }
+                                        },
+                                        "has_more": {
+                                            "type": "boolean"
+                                        },
+                                        "next_cursor": {
+                                            "type": [
+                                                "string",
+                                                "null"
+                                            ]
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/RateLimited"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationFailed"
+                    }
+                },
+                "x-scope": "knowledge:read",
+                "x-codeSamples": [
+                    {
+                        "lang": "curl",
+                        "label": "curl",
+                        "source": "curl -X GET 'https://client.replyze.chat/api/v1/knowledge/search?q=how%20long%20does%20shipping%20take' \\\n  -H 'Authorization: Bearer $REPLYZE_API_KEY'"
+                    }
+                ]
+            }
+        },
+        "/analytics/summary": {
+            "get": {
+                "operationId": "getAnalyticsSummary",
+                "summary": "Analytics summary",
+                "description": "The Analytics page's headline numbers for the last `days` days and the same span before them: conversations, resolved, handled by the AI alone, response times, satisfaction, and the split by channel. Pro and Business (not the trial).\n\nScope: `analytics:read`.",
+                "tags": [
+                    "Analytics"
+                ],
+                "parameters": [
+                    {
+                        "name": "days",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 366,
+                            "default": 30
+                        },
+                        "description": "The period, in days up to today."
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "headers": {
+                            "X-RateLimit-Limit": {
+                                "$ref": "#/components/headers/X-RateLimit-Limit"
+                            },
+                            "X-RateLimit-Remaining": {
+                                "$ref": "#/components/headers/X-RateLimit-Remaining"
+                            },
+                            "X-RateLimit-Reset": {
+                                "$ref": "#/components/headers/X-RateLimit-Reset"
+                            }
+                        },
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AnalyticsSummary"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/RateLimited"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationFailed"
+                    }
+                },
+                "x-scope": "analytics:read",
+                "x-codeSamples": [
+                    {
+                        "lang": "curl",
+                        "label": "curl",
+                        "source": "curl -X GET 'https://client.replyze.chat/api/v1/analytics/summary?days=30' \\\n  -H 'Authorization: Bearer $REPLYZE_API_KEY'"
+                    }
+                ]
+            }
+        }
+    },
+    "webhooks": {
+        "conversation.created": {
+            "post": {
+                "operationId": "webhook_conversation_created",
+                "summary": "conversation.created",
+                "description": "A conversation's first message from the visitor or the team: from then on the inbox lists it.\n\nSent as a JSON POST to the webhook's URL, signed: see the X-Replyze-Signature header.",
+                "tags": [
+                    "Webhooks"
+                ],
+                "parameters": [
+                    {
+                        "name": "X-Replyze-Event",
+                        "in": "header",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "example": "conversation.created"
+                        },
+                        "description": "The event name."
+                    },
+                    {
+                        "name": "X-Replyze-Event-Id",
+                        "in": "header",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "description": "The body's id: drop an event you already have."
+                    },
+                    {
+                        "name": "X-Replyze-Timestamp",
+                        "in": "header",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "description": "The body's created_at in Unix seconds: refuse old (replayed) requests."
+                    },
+                    {
+                        "name": "X-Replyze-Signature",
+                        "in": "header",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "example": "sha256=5d41402abc4b2a76b9719d911017c592"
+                        },
+                        "description": "`sha256=` and the hex HMAC-SHA256 of the raw body, keyed with the webhook's signing secret (shown once when the webhook is added)."
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "id",
+                                    "event",
+                                    "created_at",
+                                    "workspace_id",
+                                    "data"
+                                ],
+                                "properties": {
+                                    "id": {
+                                        "type": "string",
+                                        "format": "uuid",
+                                        "description": "The event's id: the same on every retry."
+                                    },
+                                    "event": {
+                                        "const": "conversation.created"
+                                    },
+                                    "created_at": {
+                                        "type": "string",
+                                        "format": "date-time"
+                                    },
+                                    "workspace_id": {
+                                        "type": "integer"
+                                    },
+                                    "data": {
+                                        "type": "object",
+                                        "properties": {
+                                            "conversation": {
+                                                "$ref": "#/components/schemas/WebhookConversation"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "2XX": {
+                        "description": "Received. Any 2xx counts; a network error or a 5xx is retried twice (after 30 seconds, then 3 minutes) with the same body; any other answer is final."
+                    }
+                }
+            }
+        },
+        "conversation.resolved": {
+            "post": {
+                "operationId": "webhook_conversation_resolved",
+                "summary": "conversation.resolved",
+                "description": "A conversation became resolved.\n\nSent as a JSON POST to the webhook's URL, signed: see the X-Replyze-Signature header.",
+                "tags": [
+                    "Webhooks"
+                ],
+                "parameters": [
+                    {
+                        "name": "X-Replyze-Event",
+                        "in": "header",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "example": "conversation.resolved"
+                        },
+                        "description": "The event name."
+                    },
+                    {
+                        "name": "X-Replyze-Event-Id",
+                        "in": "header",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "description": "The body's id: drop an event you already have."
+                    },
+                    {
+                        "name": "X-Replyze-Timestamp",
+                        "in": "header",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "description": "The body's created_at in Unix seconds: refuse old (replayed) requests."
+                    },
+                    {
+                        "name": "X-Replyze-Signature",
+                        "in": "header",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "example": "sha256=5d41402abc4b2a76b9719d911017c592"
+                        },
+                        "description": "`sha256=` and the hex HMAC-SHA256 of the raw body, keyed with the webhook's signing secret (shown once when the webhook is added)."
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "id",
+                                    "event",
+                                    "created_at",
+                                    "workspace_id",
+                                    "data"
+                                ],
+                                "properties": {
+                                    "id": {
+                                        "type": "string",
+                                        "format": "uuid",
+                                        "description": "The event's id: the same on every retry."
+                                    },
+                                    "event": {
+                                        "const": "conversation.resolved"
+                                    },
+                                    "created_at": {
+                                        "type": "string",
+                                        "format": "date-time"
+                                    },
+                                    "workspace_id": {
+                                        "type": "integer"
+                                    },
+                                    "data": {
+                                        "type": "object",
+                                        "properties": {
+                                            "conversation": {
+                                                "$ref": "#/components/schemas/WebhookConversation"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "2XX": {
+                        "description": "Received. Any 2xx counts; a network error or a 5xx is retried twice (after 30 seconds, then 3 minutes) with the same body; any other answer is final."
+                    }
+                }
+            }
+        },
+        "conversation.assigned": {
+            "post": {
+                "operationId": "webhook_conversation_assigned",
+                "summary": "conversation.assigned",
+                "description": "A conversation was given to a teammate or a team (taking it off them sends nothing).\n\nSent as a JSON POST to the webhook's URL, signed: see the X-Replyze-Signature header.",
+                "tags": [
+                    "Webhooks"
+                ],
+                "parameters": [
+                    {
+                        "name": "X-Replyze-Event",
+                        "in": "header",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "example": "conversation.assigned"
+                        },
+                        "description": "The event name."
+                    },
+                    {
+                        "name": "X-Replyze-Event-Id",
+                        "in": "header",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "description": "The body's id: drop an event you already have."
+                    },
+                    {
+                        "name": "X-Replyze-Timestamp",
+                        "in": "header",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "description": "The body's created_at in Unix seconds: refuse old (replayed) requests."
+                    },
+                    {
+                        "name": "X-Replyze-Signature",
+                        "in": "header",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "example": "sha256=5d41402abc4b2a76b9719d911017c592"
+                        },
+                        "description": "`sha256=` and the hex HMAC-SHA256 of the raw body, keyed with the webhook's signing secret (shown once when the webhook is added)."
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "id",
+                                    "event",
+                                    "created_at",
+                                    "workspace_id",
+                                    "data"
+                                ],
+                                "properties": {
+                                    "id": {
+                                        "type": "string",
+                                        "format": "uuid",
+                                        "description": "The event's id: the same on every retry."
+                                    },
+                                    "event": {
+                                        "const": "conversation.assigned"
+                                    },
+                                    "created_at": {
+                                        "type": "string",
+                                        "format": "date-time"
+                                    },
+                                    "workspace_id": {
+                                        "type": "integer"
+                                    },
+                                    "data": {
+                                        "type": "object",
+                                        "properties": {
+                                            "conversation": {
+                                                "$ref": "#/components/schemas/WebhookConversation"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "2XX": {
+                        "description": "Received. Any 2xx counts; a network error or a 5xx is retried twice (after 30 seconds, then 3 minutes) with the same body; any other answer is final."
+                    }
+                }
+            }
+        },
+        "message.created": {
+            "post": {
+                "operationId": "webhook_message_created",
+                "summary": "message.created",
+                "description": "A message from the visitor, the team or the AI (not internal notes, system lines or spam).\n\nSent as a JSON POST to the webhook's URL, signed: see the X-Replyze-Signature header.",
+                "tags": [
+                    "Webhooks"
+                ],
+                "parameters": [
+                    {
+                        "name": "X-Replyze-Event",
+                        "in": "header",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "example": "message.created"
+                        },
+                        "description": "The event name."
+                    },
+                    {
+                        "name": "X-Replyze-Event-Id",
+                        "in": "header",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "description": "The body's id: drop an event you already have."
+                    },
+                    {
+                        "name": "X-Replyze-Timestamp",
+                        "in": "header",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "description": "The body's created_at in Unix seconds: refuse old (replayed) requests."
+                    },
+                    {
+                        "name": "X-Replyze-Signature",
+                        "in": "header",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "example": "sha256=5d41402abc4b2a76b9719d911017c592"
+                        },
+                        "description": "`sha256=` and the hex HMAC-SHA256 of the raw body, keyed with the webhook's signing secret (shown once when the webhook is added)."
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "id",
+                                    "event",
+                                    "created_at",
+                                    "workspace_id",
+                                    "data"
+                                ],
+                                "properties": {
+                                    "id": {
+                                        "type": "string",
+                                        "format": "uuid",
+                                        "description": "The event's id: the same on every retry."
+                                    },
+                                    "event": {
+                                        "const": "message.created"
+                                    },
+                                    "created_at": {
+                                        "type": "string",
+                                        "format": "date-time"
+                                    },
+                                    "workspace_id": {
+                                        "type": "integer"
+                                    },
+                                    "data": {
+                                        "type": "object",
+                                        "properties": {
+                                            "message": {
+                                                "$ref": "#/components/schemas/WebhookMessage"
+                                            },
+                                            "conversation": {
+                                                "$ref": "#/components/schemas/WebhookConversation"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "2XX": {
+                        "description": "Received. Any 2xx counts; a network error or a 5xx is retried twice (after 30 seconds, then 3 minutes) with the same body; any other answer is final."
+                    }
+                }
+            }
+        },
+        "contact.created": {
+            "post": {
+                "operationId": "webhook_contact_created",
+                "summary": "contact.created",
+                "description": "A contact with a name, email or phone: an anonymous visitor counts from the moment they give one.\n\nSent as a JSON POST to the webhook's URL, signed: see the X-Replyze-Signature header.",
+                "tags": [
+                    "Webhooks"
+                ],
+                "parameters": [
+                    {
+                        "name": "X-Replyze-Event",
+                        "in": "header",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "example": "contact.created"
+                        },
+                        "description": "The event name."
+                    },
+                    {
+                        "name": "X-Replyze-Event-Id",
+                        "in": "header",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "description": "The body's id: drop an event you already have."
+                    },
+                    {
+                        "name": "X-Replyze-Timestamp",
+                        "in": "header",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "description": "The body's created_at in Unix seconds: refuse old (replayed) requests."
+                    },
+                    {
+                        "name": "X-Replyze-Signature",
+                        "in": "header",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "example": "sha256=5d41402abc4b2a76b9719d911017c592"
+                        },
+                        "description": "`sha256=` and the hex HMAC-SHA256 of the raw body, keyed with the webhook's signing secret (shown once when the webhook is added)."
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "id",
+                                    "event",
+                                    "created_at",
+                                    "workspace_id",
+                                    "data"
+                                ],
+                                "properties": {
+                                    "id": {
+                                        "type": "string",
+                                        "format": "uuid",
+                                        "description": "The event's id: the same on every retry."
+                                    },
+                                    "event": {
+                                        "const": "contact.created"
+                                    },
+                                    "created_at": {
+                                        "type": "string",
+                                        "format": "date-time"
+                                    },
+                                    "workspace_id": {
+                                        "type": "integer"
+                                    },
+                                    "data": {
+                                        "type": "object",
+                                        "properties": {
+                                            "contact": {
+                                                "$ref": "#/components/schemas/WebhookContact"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "2XX": {
+                        "description": "Received. Any 2xx counts; a network error or a 5xx is retried twice (after 30 seconds, then 3 minutes) with the same body; any other answer is final."
+                    }
+                }
+            }
+        },
+        "contact.updated": {
+            "post": {
+                "operationId": "webhook_contact_updated",
+                "summary": "contact.updated",
+                "description": "A known contact's details changed (not last seen, browser and such). `changed` lists the fields.\n\nSent as a JSON POST to the webhook's URL, signed: see the X-Replyze-Signature header.",
+                "tags": [
+                    "Webhooks"
+                ],
+                "parameters": [
+                    {
+                        "name": "X-Replyze-Event",
+                        "in": "header",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "example": "contact.updated"
+                        },
+                        "description": "The event name."
+                    },
+                    {
+                        "name": "X-Replyze-Event-Id",
+                        "in": "header",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "description": "The body's id: drop an event you already have."
+                    },
+                    {
+                        "name": "X-Replyze-Timestamp",
+                        "in": "header",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "description": "The body's created_at in Unix seconds: refuse old (replayed) requests."
+                    },
+                    {
+                        "name": "X-Replyze-Signature",
+                        "in": "header",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "example": "sha256=5d41402abc4b2a76b9719d911017c592"
+                        },
+                        "description": "`sha256=` and the hex HMAC-SHA256 of the raw body, keyed with the webhook's signing secret (shown once when the webhook is added)."
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "id",
+                                    "event",
+                                    "created_at",
+                                    "workspace_id",
+                                    "data"
+                                ],
+                                "properties": {
+                                    "id": {
+                                        "type": "string",
+                                        "format": "uuid",
+                                        "description": "The event's id: the same on every retry."
+                                    },
+                                    "event": {
+                                        "const": "contact.updated"
+                                    },
+                                    "created_at": {
+                                        "type": "string",
+                                        "format": "date-time"
+                                    },
+                                    "workspace_id": {
+                                        "type": "integer"
+                                    },
+                                    "data": {
+                                        "type": "object",
+                                        "properties": {
+                                            "contact": {
+                                                "$ref": "#/components/schemas/WebhookContact"
+                                            },
+                                            "changed": {
+                                                "type": "array",
+                                                "items": {
+                                                    "type": "string"
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "2XX": {
+                        "description": "Received. Any 2xx counts; a network error or a 5xx is retried twice (after 30 seconds, then 3 minutes) with the same body; any other answer is final."
+                    }
+                }
+            }
+        }
+    },
+    "components": {
+        "securitySchemes": {
+            "bearerAuth": {
+                "type": "http",
+                "scheme": "bearer",
+                "description": "A workspace API key (\"rpz_live_...\"), made by an owner or admin in Settings → Developer. Send it as `Authorization: Bearer <key>`."
+            }
+        },
+        "parameters": {
+            "Id": {
+                "name": "id",
+                "in": "path",
+                "required": true,
+                "schema": {
+                    "type": "integer"
+                },
+                "description": "The record's id."
+            },
+            "Cursor": {
+                "name": "cursor",
+                "in": "query",
+                "schema": {
+                    "type": "string"
+                },
+                "description": "The `next_cursor` of the previous page."
+            },
+            "Limit": {
+                "name": "limit",
+                "in": "query",
+                "schema": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100,
+                    "default": 25
+                },
+                "description": "Items a page."
+            },
+            "UpdatedSince": {
+                "name": "updated_since",
+                "in": "query",
+                "schema": {
+                    "type": "string",
+                    "format": "date-time"
+                },
+                "description": "Only what changed since this time (ISO 8601), for syncing.",
+                "example": "2026-11-01T00:00:00Z"
+            },
+            "IdempotencyKey": {
+                "name": "Idempotency-Key",
+                "in": "header",
+                "schema": {
+                    "type": "string",
+                    "maxLength": 255
+                },
+                "description": "A unique value per request: the same request sent again with it in 24 hours returns the first answer instead of running twice."
+            }
+        },
+        "headers": {
+            "X-RateLimit-Limit": {
+                "description": "Requests a minute this key may make.",
+                "schema": {
+                    "type": "integer"
+                }
+            },
+            "X-RateLimit-Remaining": {
+                "description": "Requests left in this minute.",
+                "schema": {
+                    "type": "integer"
+                }
+            },
+            "X-RateLimit-Reset": {
+                "description": "When the minute resets (Unix time).",
+                "schema": {
+                    "type": "integer"
+                }
+            }
+        },
+        "responses": {
+            "Unauthorized": {
+                "description": "No key, or a key that is not valid, revoked or expired.",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/Error"
+                        },
+                        "example": {
+                            "error": {
+                                "code": "invalid_api_key",
+                                "message": "This API key is not valid."
+                            }
+                        }
+                    }
+                }
+            },
+            "Forbidden": {
+                "description": "The key lacks the scope (details.required_scope), or the plan does not include the API.",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/Error"
+                        },
+                        "example": {
+                            "error": {
+                                "code": "insufficient_scope",
+                                "message": "This API key does not have the conversations:write scope."
+                            }
+                        }
+                    }
+                }
+            },
+            "NotFound": {
+                "description": "No such record in this workspace.",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/Error"
+                        },
+                        "example": {
+                            "error": {
+                                "code": "not_found",
+                                "message": "No such conversation."
+                            }
+                        }
+                    }
+                }
+            },
+            "Conflict": {
+                "description": "A contact with this email exists (details.contact_id).",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/Error"
+                        },
+                        "example": {
+                            "error": {
+                                "code": "contact_exists",
+                                "message": "A contact with this email already exists. Update it instead."
+                            }
+                        }
+                    }
+                }
+            },
+            "ValidationFailed": {
+                "description": "The request is not valid: details.errors says why, per field.",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/Error"
+                        },
+                        "example": {
+                            "error": {
+                                "code": "validation_failed",
+                                "message": "The request is not valid: The content field is required.",
+                                "details": {
+                                    "errors": {
+                                        "content": [
+                                            "The content field is required."
+                                        ]
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "RateLimited": {
+                "description": "Too many requests: wait Retry-After seconds.",
+                "headers": {
+                    "Retry-After": {
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "description": "Seconds to wait."
+                    }
+                },
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/Error"
+                        },
+                        "example": {
+                            "error": {
+                                "code": "rate_limited",
+                                "message": "Too many requests. Try again in 20 seconds.",
+                                "details": {
+                                    "retry_after": 20
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "schemas": {
+            "Error": {
+                "type": "object",
+                "required": [
+                    "error"
+                ],
+                "properties": {
+                    "error": {
+                        "type": "object",
+                        "required": [
+                            "code",
+                            "message"
+                        ],
+                        "properties": {
+                            "code": {
+                                "type": "string",
+                                "description": "Stable, for programs."
+                            },
+                            "message": {
+                                "type": "string",
+                                "description": "For people."
+                            },
+                            "details": {
+                                "type": "object",
+                                "description": "More about it: errors per field, required_scope, retry_after, contact_id."
+                            }
+                        }
+                    }
+                }
+            },
+            "ApiKeyInfo": {
+                "type": "object",
+                "properties": {
+                    "object": {
+                        "const": "api_key"
+                    },
+                    "id": {
+                        "type": "integer"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "prefix": {
+                        "type": "string",
+                        "example": "rpz_live_AbC123"
+                    },
+                    "scopes": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "enum": [
+                                "conversations:read",
+                                "conversations:write",
+                                "contacts:read",
+                                "contacts:write",
+                                "knowledge:read",
+                                "knowledge:write",
+                                "analytics:read"
+                            ]
+                        }
+                    },
+                    "expires_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "workspace": {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "type": "integer"
+                            },
+                            "name": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "Agent": {
+                "type": "object",
+                "properties": {
+                    "object": {
+                        "const": "agent"
+                    },
+                    "id": {
+                        "type": "integer"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "avatar_url": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "role": {
+                        "type": "string",
+                        "enum": [
+                            "owner",
+                            "admin",
+                            "agent"
+                        ]
+                    },
+                    "availability": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "is_online": {
+                        "type": "boolean"
+                    }
+                }
+            },
+            "Tag": {
+                "type": "object",
+                "properties": {
+                    "object": {
+                        "const": "tag"
+                    },
+                    "id": {
+                        "type": "integer"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "color": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    }
+                }
+            },
+            "Conversation": {
+                "type": "object",
+                "properties": {
+                    "object": {
+                        "const": "conversation"
+                    },
+                    "id": {
+                        "type": "integer"
+                    },
+                    "status": {
+                        "type": "string",
+                        "enum": [
+                            "open",
+                            "pending",
+                            "snoozed",
+                            "resolved",
+                            "closed",
+                            "spam"
+                        ]
+                    },
+                    "priority": {
+                        "type": "string",
+                        "enum": [
+                            "low",
+                            "normal",
+                            "high",
+                            "urgent"
+                        ]
+                    },
+                    "subject": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "channel": {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "type": [
+                                    "integer",
+                                    "null"
+                                ]
+                            },
+                            "type": {
+                                "type": "string",
+                                "description": "web, email, whatsapp, telegram, facebook, instagram, viber, sms"
+                            }
+                        }
+                    },
+                    "contact": {
+                        "type": [
+                            "object",
+                            "null"
+                        ],
+                        "properties": {
+                            "id": {
+                                "type": "integer"
+                            },
+                            "name": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "email": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "phone": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            }
+                        }
+                    },
+                    "assigned_agent": {
+                        "type": [
+                            "object",
+                            "null"
+                        ],
+                        "properties": {
+                            "id": {
+                                "type": "integer"
+                            },
+                            "name": {
+                                "type": "string"
+                            },
+                            "avatar_url": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            }
+                        }
+                    },
+                    "assigned_team": {
+                        "type": [
+                            "object",
+                            "null"
+                        ],
+                        "properties": {
+                            "id": {
+                                "type": "integer"
+                            },
+                            "name": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "tags": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "id": {
+                                    "type": "integer"
+                                },
+                                "name": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "is_spam": {
+                        "type": "boolean"
+                    },
+                    "url": {
+                        "type": "string",
+                        "format": "uri",
+                        "description": "The conversation in the inbox."
+                    },
+                    "created_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "last_activity_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "first_reply_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "resolved_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    }
+                }
+            },
+            "ConversationCreated": {
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/Conversation"
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "message": {
+                                "$ref": "#/components/schemas/Message"
+                            }
+                        }
+                    }
+                ]
+            },
+            "Message": {
+                "type": "object",
+                "properties": {
+                    "object": {
+                        "const": "message"
+                    },
+                    "id": {
+                        "type": "integer"
+                    },
+                    "conversation_id": {
+                        "type": "integer"
+                    },
+                    "sender_type": {
+                        "type": "string",
+                        "enum": [
+                            "visitor",
+                            "agent",
+                            "bot",
+                            "system"
+                        ],
+                        "description": "visitor: the customer; agent: the team; bot: the AI."
+                    },
+                    "sender": {
+                        "type": [
+                            "object",
+                            "null"
+                        ],
+                        "properties": {
+                            "id": {
+                                "type": "integer"
+                            },
+                            "name": {
+                                "type": "string"
+                            },
+                            "avatar_url": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            }
+                        },
+                        "description": "The teammate, for an agent message sent as one."
+                    },
+                    "type": {
+                        "type": "string",
+                        "description": "text, image, file, note, system_event..."
+                    },
+                    "content": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "is_internal_note": {
+                        "type": "boolean",
+                        "description": "Seen by the team only."
+                    },
+                    "attachments": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "url": {
+                                    "type": "string"
+                                },
+                                "filename": {
+                                    "type": [
+                                        "string",
+                                        "null"
+                                    ]
+                                },
+                                "mime_type": {
+                                    "type": [
+                                        "string",
+                                        "null"
+                                    ]
+                                },
+                                "size": {
+                                    "type": [
+                                        "integer",
+                                        "null"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "ai_generated": {
+                        "type": "boolean"
+                    },
+                    "delivery_status": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "enum": [
+                            "sending",
+                            "sent",
+                            "failed",
+                            null
+                        ],
+                        "description": "Replies on email and messaging apps."
+                    },
+                    "delivery_error": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "created_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "edited_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    }
+                }
+            },
+            "Contact": {
+                "type": "object",
+                "properties": {
+                    "object": {
+                        "const": "contact"
+                    },
+                    "id": {
+                        "type": "integer"
+                    },
+                    "name": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "email": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "phone": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "company": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "job_title": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "website": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "address": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "city": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "country": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "country_code": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "language": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "avatar_url": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "tags": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "custom_data": {
+                        "type": "object",
+                        "additionalProperties": {
+                            "type": [
+                                "string",
+                                "number",
+                                "boolean"
+                            ]
+                        }
+                    },
+                    "last_seen_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "created_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    }
+                }
+            },
+            "ContactInput": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "maxLength": 255
+                    },
+                    "email": {
+                        "type": "string",
+                        "format": "email"
+                    },
+                    "phone": {
+                        "type": "string",
+                        "maxLength": 50
+                    },
+                    "company": {
+                        "type": "string"
+                    },
+                    "job_title": {
+                        "type": "string"
+                    },
+                    "website": {
+                        "type": "string"
+                    },
+                    "address": {
+                        "type": "string"
+                    },
+                    "city": {
+                        "type": "string"
+                    },
+                    "country": {
+                        "type": "string"
+                    },
+                    "country_code": {
+                        "type": "string",
+                        "minLength": 2,
+                        "maxLength": 2
+                    },
+                    "language": {
+                        "type": "string"
+                    },
+                    "avatar_url": {
+                        "type": "string",
+                        "format": "uri"
+                    },
+                    "tags": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "maxLength": 50
+                        },
+                        "maxItems": 50
+                    },
+                    "custom_data": {
+                        "type": "object",
+                        "maxProperties": 50,
+                        "additionalProperties": {
+                            "type": [
+                                "string",
+                                "number",
+                                "boolean",
+                                "null"
+                            ]
+                        },
+                        "description": "Your own fields. Keys can't start with \"__\". On update, merged; null removes a key."
+                    }
+                },
+                "example": {
+                    "name": "Jane Doe",
+                    "email": "jane@example.com",
+                    "company": "Acme",
+                    "custom_data": {
+                        "plan": "gold",
+                        "orders": 3
+                    }
+                }
+            },
+            "Article": {
+                "type": "object",
+                "properties": {
+                    "object": {
+                        "const": "article"
+                    },
+                    "id": {
+                        "type": "integer"
+                    },
+                    "title": {
+                        "type": "string"
+                    },
+                    "slug": {
+                        "type": "string"
+                    },
+                    "status": {
+                        "type": "string",
+                        "enum": [
+                            "published",
+                            "draft"
+                        ]
+                    },
+                    "locale": {
+                        "type": "string"
+                    },
+                    "category_id": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "excerpt": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "content": {
+                        "type": "string",
+                        "description": "Markdown or HTML. Not in lists."
+                    },
+                    "tags": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "meta_title": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "meta_description": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "translation_group_id": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "views": {
+                        "type": "integer"
+                    },
+                    "helpful_count": {
+                        "type": "integer"
+                    },
+                    "not_helpful_count": {
+                        "type": "integer"
+                    },
+                    "public_url": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "description": "On the public help center, while it is live and the article published."
+                    },
+                    "published_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "created_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    }
+                }
+            },
+            "ArticleInput": {
+                "type": "object",
+                "properties": {
+                    "title": {
+                        "type": "string",
+                        "maxLength": 255,
+                        "description": "Required to create."
+                    },
+                    "content": {
+                        "type": "string",
+                        "description": "Markdown or HTML."
+                    },
+                    "category_id": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "status": {
+                        "type": "string",
+                        "enum": [
+                            "published",
+                            "draft"
+                        ]
+                    },
+                    "tags": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "meta_title": {
+                        "type": "string"
+                    },
+                    "meta_description": {
+                        "type": "string"
+                    },
+                    "excerpt": {
+                        "type": "string"
+                    },
+                    "locale": {
+                        "type": "string",
+                        "description": "Default: the help center's language."
+                    },
+                    "slug": {
+                        "type": "string",
+                        "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+                    }
+                },
+                "example": {
+                    "title": "How long does shipping take?",
+                    "content": "Orders ship within 24 hours.\n\nDelivery takes 2 to 4 business days.",
+                    "status": "published"
+                }
+            },
+            "Category": {
+                "type": "object",
+                "properties": {
+                    "object": {
+                        "const": "category"
+                    },
+                    "id": {
+                        "type": "integer"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "slug": {
+                        "type": "string"
+                    },
+                    "description": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "sort_order": {
+                        "type": "integer"
+                    },
+                    "article_count": {
+                        "type": "integer"
+                    },
+                    "created_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    }
+                }
+            },
+            "KnowledgeResult": {
+                "type": "object",
+                "properties": {
+                    "object": {
+                        "const": "knowledge_result"
+                    },
+                    "type": {
+                        "type": "string",
+                        "enum": [
+                            "article",
+                            "website",
+                            "file"
+                        ]
+                    },
+                    "article_id": {
+                        "type": "integer",
+                        "description": "For an article."
+                    },
+                    "source_id": {
+                        "type": "integer",
+                        "description": "For a website page or file."
+                    },
+                    "page_id": {
+                        "type": "integer"
+                    },
+                    "title": {
+                        "type": "string"
+                    },
+                    "heading": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "url": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "file": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "content": {
+                        "type": "string"
+                    }
+                }
+            },
+            "AnalyticsSummary": {
+                "type": "object",
+                "properties": {
+                    "object": {
+                        "const": "analytics_summary"
+                    },
+                    "period": {
+                        "type": "object",
+                        "properties": {
+                            "days": {
+                                "type": "integer"
+                            },
+                            "timezone": {
+                                "type": "string"
+                            },
+                            "start": {
+                                "type": "string",
+                                "format": "date-time"
+                            },
+                            "end": {
+                                "type": "string",
+                                "format": "date-time"
+                            },
+                            "previous_start": {
+                                "type": "string",
+                                "format": "date-time"
+                            },
+                            "previous_end": {
+                                "type": "string",
+                                "format": "date-time"
+                            }
+                        }
+                    },
+                    "kpis": {
+                        "type": "object",
+                        "description": "conversations, resolved, ai_alone, ai_first_response, team_first_reply and csat, each with the previous period's value."
+                    },
+                    "channels": {
+                        "type": "array",
+                        "items": {
+                            "type": "object"
+                        }
+                    },
+                    "csat": {
+                        "type": "object",
+                        "description": "Average rating, count, share satisfied and the distribution."
+                    }
+                }
+            },
+            "WebhookConversation": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer"
+                    },
+                    "status": {
+                        "type": "string"
+                    },
+                    "priority": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "subject": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "channel": {
+                        "type": "string"
+                    },
+                    "url": {
+                        "type": "string",
+                        "format": "uri"
+                    },
+                    "contact": {
+                        "type": [
+                            "object",
+                            "null"
+                        ],
+                        "properties": {
+                            "id": {
+                                "type": "integer"
+                            },
+                            "name": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "email": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "phone": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            }
+                        }
+                    },
+                    "assigned_agent": {
+                        "type": [
+                            "object",
+                            "null"
+                        ],
+                        "properties": {
+                            "id": {
+                                "type": "integer"
+                            },
+                            "name": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "assigned_team": {
+                        "type": [
+                            "object",
+                            "null"
+                        ],
+                        "properties": {
+                            "id": {
+                                "type": "integer"
+                            },
+                            "name": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "resolved_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    }
+                }
+            },
+            "WebhookMessage": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer"
+                    },
+                    "conversation_id": {
+                        "type": "integer"
+                    },
+                    "sender_type": {
+                        "type": "string",
+                        "enum": [
+                            "visitor",
+                            "agent",
+                            "bot"
+                        ]
+                    },
+                    "sender": {
+                        "type": [
+                            "object",
+                            "null"
+                        ],
+                        "properties": {
+                            "id": {
+                                "type": "integer"
+                            },
+                            "name": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "type": {
+                        "type": "string"
+                    },
+                    "content": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "attachments": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "url": {
+                                    "type": "string"
+                                },
+                                "filename": {
+                                    "type": [
+                                        "string",
+                                        "null"
+                                    ]
+                                },
+                                "mime_type": {
+                                    "type": [
+                                        "string",
+                                        "null"
+                                    ]
+                                },
+                                "size": {
+                                    "type": [
+                                        "integer",
+                                        "null"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "ai_generated": {
+                        "type": "boolean"
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                }
+            },
+            "WebhookContact": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer"
+                    },
+                    "name": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "email": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "phone": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "address": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "website": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "gender": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "avatar_url": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "company": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "job_title": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "job_role": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "company_domain": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "city": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "country": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "country_code": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "language": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "tags": {
+                        "type": [
+                            "array",
+                            "null"
+                        ]
+                    },
+                    "segments": {
+                        "type": [
+                            "array",
+                            "null"
+                        ]
+                    },
+                    "custom_data": {
+                        "type": "object"
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                }
+            }
+        }
+    },
+    "x-scopes": [
+        {
+            "scope": "conversations:read",
+            "description": "Read conversations, their messages and notes, the team and the tags"
+        },
+        {
+            "scope": "conversations:write",
+            "description": "Start conversations, send replies and internal notes, assign, resolve, reopen and tag"
+        },
+        {
+            "scope": "contacts:read",
+            "description": "Read contacts"
+        },
+        {
+            "scope": "contacts:write",
+            "description": "Create and update contacts"
+        },
+        {
+            "scope": "knowledge:read",
+            "description": "Read knowledge base articles and categories, search the knowledge the AI answers from"
+        },
+        {
+            "scope": "knowledge:write",
+            "description": "Create and update knowledge base articles and categories"
+        },
+        {
+            "scope": "analytics:read",
+            "description": "Read the analytics summary"
+        }
+    ],
+    "x-mcp": {
+        "url": "https://client.replyze.chat/api/mcp",
+        "transport": "streamable-http",
+        "protocol_versions": [
+            "2025-06-18",
+            "2025-03-26",
+            "2024-11-05"
+        ],
+        "authentication": "Authorization: Bearer <API key>; the key's scopes decide which tools are listed.",
+        "tools": [
+            {
+                "name": "search_conversations",
+                "title": "Search conversations",
+                "description": "Find conversations in the inbox, newest activity first. Matches the contact's name, email or phone, the subject, and anything the visitor or the team wrote (not internal notes). Filter by status, contact or assignee. Returns up to `limit` conversations with their contact, assignee, channel and tags; use get_conversation to read one.",
+                "scope": "conversations:read"
+            },
+            {
+                "name": "get_conversation",
+                "title": "Read a conversation",
+                "description": "One conversation with its latest messages, oldest first: what the visitor wrote (sender_type \"visitor\"), the team's replies (\"agent\"), the AI's replies (\"bot\") and the team's internal notes (is_internal_note true, never shown to the visitor).",
+                "scope": "conversations:read"
+            },
+            {
+                "name": "list_agents",
+                "title": "List teammates",
+                "description": "The teammates who can answer conversations, with their ids (for assign_conversation and agent_id), roles and whether they are online.",
+                "scope": "conversations:read"
+            },
+            {
+                "name": "send_message",
+                "title": "Reply to the visitor",
+                "description": "Send a reply in a conversation. The visitor gets it, in the chat widget or by email, WhatsApp, Telegram, Messenger or Instagram, whichever channel the conversation is on. A resolved conversation opens again. Write it as the team would: it is sent as is. For something only the team should see, use add_note.",
+                "scope": "conversations:write"
+            },
+            {
+                "name": "add_note",
+                "title": "Add an internal note",
+                "description": "Add an internal note to a conversation: the team sees it in the inbox, the visitor never does. Use it for summaries, findings and handover notes.",
+                "scope": "conversations:write"
+            },
+            {
+                "name": "assign_conversation",
+                "title": "Assign a conversation",
+                "description": "Give a conversation to a teammate (agent_id from list_agents) and/or a team (team_id). Send null to take it off them. At least one of agent_id and team_id is needed.",
+                "scope": "conversations:write"
+            },
+            {
+                "name": "search_contacts",
+                "title": "Search contacts",
+                "description": "Find contacts (the workspace's customers and visitors who gave their details) by name, email, phone or company. Newest first.",
+                "scope": "contacts:read"
+            },
+            {
+                "name": "get_contact",
+                "title": "Read a contact",
+                "description": "One contact with their details, custom data and latest conversations.",
+                "scope": "contacts:read"
+            },
+            {
+                "name": "search_knowledge",
+                "title": "Search the knowledge base",
+                "description": "Search what the workspace's AI answers from: published knowledge base articles, and the website pages and files it learned. Ask in plain words, like a customer would. Each result says where it is from (article, website page with its URL, or file).",
+                "scope": "knowledge:read"
+            },
+            {
+                "name": "get_article",
+                "title": "Read an article",
+                "description": "One knowledge base article with its full text, by id or by slug. Drafts included (status says which).",
+                "scope": "knowledge:read"
+            }
+        ],
+        "public_knowledge": {
+            "url": "https://client.replyze.chat/api/mcp/kb/{help-center-slug}",
+            "authentication": "None. Only while the help center is switched on; only its published articles.",
+            "tools": [
+                "search_articles",
+                "get_article"
+            ]
+        },
+        "signature_examples": [
+            {
+                "lang": "node",
+                "label": "Node.js",
+                "source": "const crypto = require('crypto');\n\n// rawBody: the request body exactly as received (a Buffer or string)\nfunction verify(rawBody, headers, secret) {\n  const expected = 'sha256=' + crypto.createHmac('sha256', secret).update(rawBody).digest('hex');\n  const given = headers['x-replyze-signature'] || '';\n  const fresh = Math.abs(Date.now() / 1000 - Number(headers['x-replyze-timestamp'])) < 300;\n  return fresh && given.length === expected.length\n    && crypto.timingSafeEqual(Buffer.from(given), Buffer.from(expected));\n}"
+            },
+            {
+                "lang": "php",
+                "label": "PHP",
+                "source": "$raw = file_get_contents('php://input');\n$expected = 'sha256=' . hash_hmac('sha256', $raw, $secret);\n$given = $_SERVER['HTTP_X_REPLYZE_SIGNATURE'] ?? '';\n$fresh = abs(time() - (int) ($_SERVER['HTTP_X_REPLYZE_TIMESTAMP'] ?? 0)) < 300;\n\nif (!$fresh || !hash_equals($expected, $given)) {\n    http_response_code(401);\n    exit;\n}\n$event = json_decode($raw, true);"
+            },
+            {
+                "lang": "python",
+                "label": "Python",
+                "source": "import hmac, hashlib, time\n\ndef verify(raw_body: bytes, headers, secret: str) -> bool:\n    expected = 'sha256=' + hmac.new(secret.encode(), raw_body, hashlib.sha256).hexdigest()\n    fresh = abs(time.time() - int(headers.get('X-Replyze-Timestamp', 0))) < 300\n    return fresh and hmac.compare_digest(expected, headers.get('X-Replyze-Signature', ''))"
+            }
+        ]
+    }
+}

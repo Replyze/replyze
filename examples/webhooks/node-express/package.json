@@ -1,0 +1,13 @@
+{
+  "name": "replyze-webhook-express",
+  "private": true,
+  "description": "A Replyze webhook receiver in Express that verifies the X-Replyze-Signature header.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.2"
+  },
+  "license": "MIT"
+}

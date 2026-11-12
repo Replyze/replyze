@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Replyze widget: JavaScript API example</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 640px; margin: 40px auto; padding: 0 16px; line-height: 1.5; }
+    button { margin: 4px 4px 4px 0; padding: 8px 12px; cursor: pointer; }
+    #log { background: #f4f6f8; padding: 12px; min-height: 120px; white-space: pre-wrap; font-size: 13px; }
+  </style>
+</head>
+<body>
+  <h1>Replyze widget example</h1>
+  <p>Put your widget token (Settings → Integrations → Install widget) in the first script, then open this page.</p>
+
+  <p>
+    <button onclick="replyze('open')">Open chat</button>
+    <button onclick="replyze('close')">Close chat</button>
+    <button onclick="replyze('hide')">Hide launcher</button>
+    <button onclick="replyze('show')">Show launcher</button>
+    <button onclick="replyze('identify', 'jane@example.com', 'Jane Doe')">Identify as Jane</button>
+    <button onclick="replyze('pushEvent', 'Clicked upgrade', { plan: 'pro' })">Push an event</button>
+    <button onclick="replyze('reset')">Sign out (reset)</button>
+  </p>
+  <p>Unread: <strong id="unread">0</strong></p>
+  <div id="log"></div>
+
+  <script>
+    window.ReplyzeConfig = {
+      token: 'wgt_YOUR_TOKEN_HERE',
+      apiUrl: 'https://client.replyze.chat'
+    };
+    // Calls made before widget.js has loaded wait in this queue.
+    window.Replyze = window.Replyze || { _queue: [] };
+
+    // Runs the call now if the widget is there, else queues it.
+    function replyze(method, ...args) {
+      if (window.Replyze && window.Replyze._initialized) window.Replyze[method](...args);
+      else window.Replyze._queue.push([method, ...args]);
+    }
+
+    function log(line) {
+      document.getElementById('log').textContent += line + '\n';
+    }
+
+    replyze('on', 'ready', () => log('ready'));
+    replyze('on', 'open', () => log('open'));
+    replyze('on', 'close', () => log('close'));
+    replyze('on', 'message:sent', (m) => log('message:sent ' + JSON.stringify(m)));
+    replyze('on', 'message:received', (m) => log('message:received ' + JSON.stringify(m)));
+    replyze('on', 'identified', (r) => log('identified ' + JSON.stringify(r)));
+    replyze('on', 'reset', () => log('reset'));
+    replyze('on', 'unread', (count) => { document.getElementById('unread').textContent = count; });
+  </script>
+  <script src="https://cdn.replyze.chat/widget.js" async></script>
+</body>
+</html>
