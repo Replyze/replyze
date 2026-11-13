@@ -93,7 +93,7 @@
                     {
                         "lang": "curl",
                         "label": "curl",
-                        "source": "curl -X GET 'https://client.replyze.chat/api/v1/me' \\\n  -H 'Authorization: Bearer $REPLYZE_API_KEY'"
+                        "source": "curl -X GET 'https://client.replyze.chat/api/v1/me' \\\n  -H \"Authorization: Bearer $REPLYZE_API_KEY\""
                     }
                 ]
             }
@@ -170,7 +170,7 @@
                     {
                         "lang": "curl",
                         "label": "curl",
-                        "source": "curl -X GET 'https://client.replyze.chat/api/v1/agents' \\\n  -H 'Authorization: Bearer $REPLYZE_API_KEY'"
+                        "source": "curl -X GET 'https://client.replyze.chat/api/v1/agents' \\\n  -H \"Authorization: Bearer $REPLYZE_API_KEY\""
                     }
                 ]
             }
@@ -247,7 +247,7 @@
                     {
                         "lang": "curl",
                         "label": "curl",
-                        "source": "curl -X GET 'https://client.replyze.chat/api/v1/tags' \\\n  -H 'Authorization: Bearer $REPLYZE_API_KEY'"
+                        "source": "curl -X GET 'https://client.replyze.chat/api/v1/tags' \\\n  -H \"Authorization: Bearer $REPLYZE_API_KEY\""
                     }
                 ]
             }
@@ -429,7 +429,7 @@
                     {
                         "lang": "curl",
                         "label": "curl",
-                        "source": "curl -X GET 'https://client.replyze.chat/api/v1/conversations?status=open&limit=25' \\\n  -H 'Authorization: Bearer $REPLYZE_API_KEY'"
+                        "source": "curl -X GET 'https://client.replyze.chat/api/v1/conversations?status=open&limit=25' \\\n  -H \"Authorization: Bearer $REPLYZE_API_KEY\""
                     }
                 ]
             },
@@ -554,7 +554,7 @@
                     {
                         "lang": "curl",
                         "label": "curl",
-                        "source": "curl -X POST 'https://client.replyze.chat/api/v1/conversations' \\\n  -H 'Authorization: Bearer $REPLYZE_API_KEY' \\\n  -H 'Content-Type: application/json' \\\n  -H \"Idempotency-Key: $(uuidgen)\" \\\n  -d '{\"contact\":{\"email\":\"jane@example.com\",\"name\":\"Jane Doe\"},\"subject\":\"Your order #1042\",\"message\":\"Hi Jane, your order has shipped!\"}'"
+                        "source": "curl -X POST 'https://client.replyze.chat/api/v1/conversations' \\\n  -H \"Authorization: Bearer $REPLYZE_API_KEY\" \\\n  -H 'Content-Type: application/json' \\\n  -H \"Idempotency-Key: $(uuidgen)\" \\\n  -d '{\"contact\":{\"email\":\"jane@example.com\",\"name\":\"Jane Doe\"},\"subject\":\"Your order #1042\",\"message\":\"Hi Jane, your order has shipped!\"}'"
                     }
                 ]
             }
@@ -612,7 +612,7 @@
                     {
                         "lang": "curl",
                         "label": "curl",
-                        "source": "curl -X GET 'https://client.replyze.chat/api/v1/conversations/123' \\\n  -H 'Authorization: Bearer $REPLYZE_API_KEY'"
+                        "source": "curl -X GET 'https://client.replyze.chat/api/v1/conversations/123' \\\n  -H \"Authorization: Bearer $REPLYZE_API_KEY\""
                     }
                 ]
             }
@@ -703,7 +703,7 @@
                     {
                         "lang": "curl",
                         "label": "curl",
-                        "source": "curl -X POST 'https://client.replyze.chat/api/v1/conversations/123/assign' \\\n  -H 'Authorization: Bearer $REPLYZE_API_KEY' \\\n  -H 'Content-Type: application/json' \\\n  -H \"Idempotency-Key: $(uuidgen)\" \\\n  -d '{\"agent_id\":12}'"
+                        "source": "curl -X POST 'https://client.replyze.chat/api/v1/conversations/123/assign' \\\n  -H \"Authorization: Bearer $REPLYZE_API_KEY\" \\\n  -H 'Content-Type: application/json' \\\n  -H \"Idempotency-Key: $(uuidgen)\" \\\n  -d '{\"agent_id\":12}'"
                     }
                 ]
             }
@@ -764,7 +764,7 @@
                     {
                         "lang": "curl",
                         "label": "curl",
-                        "source": "curl -X POST 'https://client.replyze.chat/api/v1/conversations/123/resolve' \\\n  -H 'Authorization: Bearer $REPLYZE_API_KEY' \\\n  -H \"Idempotency-Key: $(uuidgen)\""
+                        "source": "curl -X POST 'https://client.replyze.chat/api/v1/conversations/123/resolve' \\\n  -H \"Authorization: Bearer $REPLYZE_API_KEY\" \\\n  -H \"Idempotency-Key: $(uuidgen)\""
                     }
                 ]
             }
@@ -825,7 +825,7 @@
                     {
                         "lang": "curl",
                         "label": "curl",
-                        "source": "curl -X POST 'https://client.replyze.chat/api/v1/conversations/123/reopen' \\\n  -H 'Authorization: Bearer $REPLYZE_API_KEY' \\\n  -H \"Idempotency-Key: $(uuidgen)\""
+                        "source": "curl -X POST 'https://client.replyze.chat/api/v1/conversations/123/reopen' \\\n  -H \"Authorization: Bearer $REPLYZE_API_KEY\" \\\n  -H \"Idempotency-Key: $(uuidgen)\""
                     }
                 ]
             }
@@ -911,7 +911,7 @@
                     {
                         "lang": "curl",
                         "label": "curl",
-                        "source": "curl -X POST 'https://client.replyze.chat/api/v1/conversations/123/tags' \\\n  -H 'Authorization: Bearer $REPLYZE_API_KEY' \\\n  -H 'Content-Type: application/json' \\\n  -H \"Idempotency-Key: $(uuidgen)\" \\\n  -d '{\"name\":\"vip\"}'"
+                        "source": "curl -X POST 'https://client.replyze.chat/api/v1/conversations/123/tags' \\\n  -H \"Authorization: Bearer $REPLYZE_API_KEY\" \\\n  -H 'Content-Type: application/json' \\\n  -H \"Idempotency-Key: $(uuidgen)\" \\\n  -d '{\"name\":\"vip\"}'"
                     }
                 ]
             }
@@ -977,7 +977,7 @@
                     {
                         "lang": "curl",
                         "label": "curl",
-                        "source": "curl -X DELETE 'https://client.replyze.chat/api/v1/conversations/123/tags/7' \\\n  -H 'Authorization: Bearer $REPLYZE_API_KEY'"
+                        "source": "curl -X DELETE 'https://client.replyze.chat/api/v1/conversations/123/tags/7' \\\n  -H \"Authorization: Bearer $REPLYZE_API_KEY\""
                     }
                 ]
             }
@@ -1082,7 +1082,7 @@
                     {
                         "lang": "curl",
                         "label": "curl",
-                        "source": "curl -X GET 'https://client.replyze.chat/api/v1/conversations/123/messages' \\\n  -H 'Authorization: Bearer $REPLYZE_API_KEY'"
+                        "source": "curl -X GET 'https://client.replyze.chat/api/v1/conversations/123/messages' \\\n  -H \"Authorization: Bearer $REPLYZE_API_KEY\""
                     }
                 ]
             },
@@ -1177,7 +1177,7 @@
                     {
                         "lang": "curl",
                         "label": "curl",
-                        "source": "curl -X POST 'https://client.replyze.chat/api/v1/conversations/123/messages' \\\n  -H 'Authorization: Bearer $REPLYZE_API_KEY' \\\n  -H 'Content-Type: application/json' \\\n  -H \"Idempotency-Key: $(uuidgen)\" \\\n  -d '{\"content\":\"Thanks for waiting! Your refund is on its way.\"}'"
+                        "source": "curl -X POST 'https://client.replyze.chat/api/v1/conversations/123/messages' \\\n  -H \"Authorization: Bearer $REPLYZE_API_KEY\" \\\n  -H 'Content-Type: application/json' \\\n  -H \"Idempotency-Key: $(uuidgen)\" \\\n  -d '{\"content\":\"Thanks for waiting! Your refund is on its way.\"}'"
                     }
                 ]
             }
@@ -1243,7 +1243,7 @@
                     {
                         "lang": "curl",
                         "label": "curl",
-                        "source": "curl -X GET 'https://client.replyze.chat/api/v1/conversations/123/messages/456' \\\n  -H 'Authorization: Bearer $REPLYZE_API_KEY'"
+                        "source": "curl -X GET 'https://client.replyze.chat/api/v1/conversations/123/messages/456' \\\n  -H \"Authorization: Bearer $REPLYZE_API_KEY\""
                     }
                 ]
             }
@@ -1359,7 +1359,7 @@
                     {
                         "lang": "curl",
                         "label": "curl",
-                        "source": "curl -X GET 'https://client.replyze.chat/api/v1/contacts' \\\n  -H 'Authorization: Bearer $REPLYZE_API_KEY'"
+                        "source": "curl -X GET 'https://client.replyze.chat/api/v1/contacts' \\\n  -H \"Authorization: Bearer $REPLYZE_API_KEY\""
                     }
                 ]
             },
@@ -1428,7 +1428,7 @@
                     {
                         "lang": "curl",
                         "label": "curl",
-                        "source": "curl -X POST 'https://client.replyze.chat/api/v1/contacts' \\\n  -H 'Authorization: Bearer $REPLYZE_API_KEY' \\\n  -H 'Content-Type: application/json' \\\n  -H \"Idempotency-Key: $(uuidgen)\" \\\n  -d '{\"name\":\"Jane Doe\",\"email\":\"jane@example.com\",\"company\":\"Acme\",\"custom_data\":{\"plan\":\"gold\",\"orders\":3}}'"
+                        "source": "curl -X POST 'https://client.replyze.chat/api/v1/contacts' \\\n  -H \"Authorization: Bearer $REPLYZE_API_KEY\" \\\n  -H 'Content-Type: application/json' \\\n  -H \"Idempotency-Key: $(uuidgen)\" \\\n  -d '{\"name\":\"Jane Doe\",\"email\":\"jane@example.com\",\"company\":\"Acme\",\"custom_data\":{\"plan\":\"gold\",\"orders\":3}}'"
                     }
                 ]
             }
@@ -1486,7 +1486,7 @@
                     {
                         "lang": "curl",
                         "label": "curl",
-                        "source": "curl -X GET 'https://client.replyze.chat/api/v1/contacts/123' \\\n  -H 'Authorization: Bearer $REPLYZE_API_KEY'"
+                        "source": "curl -X GET 'https://client.replyze.chat/api/v1/contacts/123' \\\n  -H \"Authorization: Bearer $REPLYZE_API_KEY\""
                     }
                 ]
             },
@@ -1558,7 +1558,7 @@
                     {
                         "lang": "curl",
                         "label": "curl",
-                        "source": "curl -X PATCH 'https://client.replyze.chat/api/v1/contacts/123' \\\n  -H 'Authorization: Bearer $REPLYZE_API_KEY' \\\n  -H 'Content-Type: application/json' \\\n  -d '{\"name\":\"Jane Doe\",\"email\":\"jane@example.com\",\"company\":\"Acme\",\"custom_data\":{\"plan\":\"gold\",\"orders\":3}}'"
+                        "source": "curl -X PATCH 'https://client.replyze.chat/api/v1/contacts/123' \\\n  -H \"Authorization: Bearer $REPLYZE_API_KEY\" \\\n  -H 'Content-Type: application/json' \\\n  -d '{\"name\":\"Jane Doe\",\"email\":\"jane@example.com\",\"company\":\"Acme\",\"custom_data\":{\"plan\":\"gold\",\"orders\":3}}'"
                     }
                 ]
             }
@@ -1685,7 +1685,7 @@
                     {
                         "lang": "curl",
                         "label": "curl",
-                        "source": "curl -X GET 'https://client.replyze.chat/api/v1/articles' \\\n  -H 'Authorization: Bearer $REPLYZE_API_KEY'"
+                        "source": "curl -X GET 'https://client.replyze.chat/api/v1/articles' \\\n  -H \"Authorization: Bearer $REPLYZE_API_KEY\""
                     }
                 ]
             },
@@ -1751,7 +1751,7 @@
                     {
                         "lang": "curl",
                         "label": "curl",
-                        "source": "curl -X POST 'https://client.replyze.chat/api/v1/articles' \\\n  -H 'Authorization: Bearer $REPLYZE_API_KEY' \\\n  -H 'Content-Type: application/json' \\\n  -H \"Idempotency-Key: $(uuidgen)\" \\\n  -d '{\"title\":\"How long does shipping take?\",\"content\":\"Orders ship within 24 hours.\\n\\nDelivery takes 2 to 4 business days.\",\"status\":\"published\"}'"
+                        "source": "curl -X POST 'https://client.replyze.chat/api/v1/articles' \\\n  -H \"Authorization: Bearer $REPLYZE_API_KEY\" \\\n  -H 'Content-Type: application/json' \\\n  -H \"Idempotency-Key: $(uuidgen)\" \\\n  -d '{\"title\":\"How long does shipping take?\",\"content\":\"Orders ship within 24 hours.\\n\\nDelivery takes 2 to 4 business days.\",\"status\":\"published\"}'"
                     }
                 ]
             }
@@ -1809,7 +1809,7 @@
                     {
                         "lang": "curl",
                         "label": "curl",
-                        "source": "curl -X GET 'https://client.replyze.chat/api/v1/articles/123' \\\n  -H 'Authorization: Bearer $REPLYZE_API_KEY'"
+                        "source": "curl -X GET 'https://client.replyze.chat/api/v1/articles/123' \\\n  -H \"Authorization: Bearer $REPLYZE_API_KEY\""
                     }
                 ]
             },
@@ -1878,7 +1878,7 @@
                     {
                         "lang": "curl",
                         "label": "curl",
-                        "source": "curl -X PATCH 'https://client.replyze.chat/api/v1/articles/123' \\\n  -H 'Authorization: Bearer $REPLYZE_API_KEY' \\\n  -H 'Content-Type: application/json' \\\n  -d '{\"title\":\"How long does shipping take?\",\"content\":\"Orders ship within 24 hours.\\n\\nDelivery takes 2 to 4 business days.\",\"status\":\"published\"}'"
+                        "source": "curl -X PATCH 'https://client.replyze.chat/api/v1/articles/123' \\\n  -H \"Authorization: Bearer $REPLYZE_API_KEY\" \\\n  -H 'Content-Type: application/json' \\\n  -d '{\"title\":\"How long does shipping take?\",\"content\":\"Orders ship within 24 hours.\\n\\nDelivery takes 2 to 4 business days.\",\"status\":\"published\"}'"
                     }
                 ]
             }
@@ -1955,7 +1955,7 @@
                     {
                         "lang": "curl",
                         "label": "curl",
-                        "source": "curl -X GET 'https://client.replyze.chat/api/v1/categories' \\\n  -H 'Authorization: Bearer $REPLYZE_API_KEY'"
+                        "source": "curl -X GET 'https://client.replyze.chat/api/v1/categories' \\\n  -H \"Authorization: Bearer $REPLYZE_API_KEY\""
                     }
                 ]
             },
@@ -2044,7 +2044,7 @@
                     {
                         "lang": "curl",
                         "label": "curl",
-                        "source": "curl -X POST 'https://client.replyze.chat/api/v1/categories' \\\n  -H 'Authorization: Bearer $REPLYZE_API_KEY' \\\n  -H 'Content-Type: application/json' \\\n  -H \"Idempotency-Key: $(uuidgen)\" \\\n  -d '{\"name\":\"Shipping\",\"description\":\"Delivery times and costs\"}'"
+                        "source": "curl -X POST 'https://client.replyze.chat/api/v1/categories' \\\n  -H \"Authorization: Bearer $REPLYZE_API_KEY\" \\\n  -H 'Content-Type: application/json' \\\n  -H \"Idempotency-Key: $(uuidgen)\" \\\n  -d '{\"name\":\"Shipping\",\"description\":\"Delivery times and costs\"}'"
                     }
                 ]
             }
@@ -2102,7 +2102,7 @@
                     {
                         "lang": "curl",
                         "label": "curl",
-                        "source": "curl -X GET 'https://client.replyze.chat/api/v1/categories/123' \\\n  -H 'Authorization: Bearer $REPLYZE_API_KEY'"
+                        "source": "curl -X GET 'https://client.replyze.chat/api/v1/categories/123' \\\n  -H \"Authorization: Bearer $REPLYZE_API_KEY\""
                     }
                 ]
             },
@@ -2190,7 +2190,7 @@
                     {
                         "lang": "curl",
                         "label": "curl",
-                        "source": "curl -X PATCH 'https://client.replyze.chat/api/v1/categories/123' \\\n  -H 'Authorization: Bearer $REPLYZE_API_KEY' \\\n  -H 'Content-Type: application/json' \\\n  -d '{\"sort_order\":1}'"
+                        "source": "curl -X PATCH 'https://client.replyze.chat/api/v1/categories/123' \\\n  -H \"Authorization: Bearer $REPLYZE_API_KEY\" \\\n  -H 'Content-Type: application/json' \\\n  -d '{\"sort_order\":1}'"
                     }
                 ]
             }
@@ -2283,7 +2283,7 @@
                     {
                         "lang": "curl",
                         "label": "curl",
-                        "source": "curl -X GET 'https://client.replyze.chat/api/v1/knowledge/search?q=how%20long%20does%20shipping%20take' \\\n  -H 'Authorization: Bearer $REPLYZE_API_KEY'"
+                        "source": "curl -X GET 'https://client.replyze.chat/api/v1/knowledge/search?q=how%20long%20does%20shipping%20take' \\\n  -H \"Authorization: Bearer $REPLYZE_API_KEY\""
                     }
                 ]
             }
@@ -2349,7 +2349,7 @@
                     {
                         "lang": "curl",
                         "label": "curl",
-                        "source": "curl -X GET 'https://client.replyze.chat/api/v1/analytics/summary?days=30' \\\n  -H 'Authorization: Bearer $REPLYZE_API_KEY'"
+                        "source": "curl -X GET 'https://client.replyze.chat/api/v1/analytics/summary?days=30' \\\n  -H \"Authorization: Bearer $REPLYZE_API_KEY\""
                     }
                 ]
             }
@@ -2383,7 +2383,7 @@
                             "type": "string",
                             "format": "uuid"
                         },
-                        "description": "The body's id: drop an event you already have."
+                        "description": "A copy of the body's `id`. **Not signed**: a replayed request can carry any value, so drop duplicates by the `id` in the verified body."
                     },
                     {
                         "name": "X-Replyze-Timestamp",
@@ -2392,7 +2392,7 @@
                         "schema": {
                             "type": "integer"
                         },
-                        "description": "The body's created_at in Unix seconds: refuse old (replayed) requests."
+                        "description": "A copy of the body's `created_at`, in Unix seconds. **Not signed**: a replayed request can carry any value, so check the age of the `created_at` in the verified body."
                     },
                     {
                         "name": "X-Replyze-Signature",
@@ -2400,9 +2400,9 @@
                         "required": true,
                         "schema": {
                             "type": "string",
-                            "example": "sha256=5d41402abc4b2a76b9719d911017c592"
+                            "example": "sha256=912da3252eccfa6203a07400fd4a24081c10f35882012b0a50b7b12844a78979"
                         },
-                        "description": "`sha256=` and the hex HMAC-SHA256 of the raw body, keyed with the webhook's signing secret (shown once when the webhook is added)."
+                        "description": "`sha256=` and the hex HMAC-SHA256 of the raw body, keyed with the webhook's signing secret (shown once when the webhook is added). Only the body is signed, not the other headers."
                     }
                 ],
                 "requestBody": {
@@ -2422,14 +2422,15 @@
                                     "id": {
                                         "type": "string",
                                         "format": "uuid",
-                                        "description": "The event's id: the same on every retry."
+                                        "description": "The event's id: the same on every retry. Drop an event whose id you have already handled."
                                     },
                                     "event": {
                                         "const": "conversation.created"
                                     },
                                     "created_at": {
                                         "type": "string",
-                                        "format": "date-time"
+                                        "format": "date-time",
+                                        "description": "When the event happened. Refuse an event more than 5 minutes from now: it is an old request sent again. Five minutes leaves room for the retries."
                                     },
                                     "workspace_id": {
                                         "type": "integer"
@@ -2481,7 +2482,7 @@
                             "type": "string",
                             "format": "uuid"
                         },
-                        "description": "The body's id: drop an event you already have."
+                        "description": "A copy of the body's `id`. **Not signed**: a replayed request can carry any value, so drop duplicates by the `id` in the verified body."
                     },
                     {
                         "name": "X-Replyze-Timestamp",
@@ -2490,7 +2491,7 @@
                         "schema": {
                             "type": "integer"
                         },
-                        "description": "The body's created_at in Unix seconds: refuse old (replayed) requests."
+                        "description": "A copy of the body's `created_at`, in Unix seconds. **Not signed**: a replayed request can carry any value, so check the age of the `created_at` in the verified body."
                     },
                     {
                         "name": "X-Replyze-Signature",
@@ -2498,9 +2499,9 @@
                         "required": true,
                         "schema": {
                             "type": "string",
-                            "example": "sha256=5d41402abc4b2a76b9719d911017c592"
+                            "example": "sha256=912da3252eccfa6203a07400fd4a24081c10f35882012b0a50b7b12844a78979"
                         },
-                        "description": "`sha256=` and the hex HMAC-SHA256 of the raw body, keyed with the webhook's signing secret (shown once when the webhook is added)."
+                        "description": "`sha256=` and the hex HMAC-SHA256 of the raw body, keyed with the webhook's signing secret (shown once when the webhook is added). Only the body is signed, not the other headers."
                     }
                 ],
                 "requestBody": {
@@ -2520,14 +2521,15 @@
                                     "id": {
                                         "type": "string",
                                         "format": "uuid",
-                                        "description": "The event's id: the same on every retry."
+                                        "description": "The event's id: the same on every retry. Drop an event whose id you have already handled."
                                     },
                                     "event": {
                                         "const": "conversation.resolved"
                                     },
                                     "created_at": {
                                         "type": "string",
-                                        "format": "date-time"
+                                        "format": "date-time",
+                                        "description": "When the event happened. Refuse an event more than 5 minutes from now: it is an old request sent again. Five minutes leaves room for the retries."
                                     },
                                     "workspace_id": {
                                         "type": "integer"
@@ -2579,7 +2581,7 @@
                             "type": "string",
                             "format": "uuid"
                         },
-                        "description": "The body's id: drop an event you already have."
+                        "description": "A copy of the body's `id`. **Not signed**: a replayed request can carry any value, so drop duplicates by the `id` in the verified body."
                     },
                     {
                         "name": "X-Replyze-Timestamp",
@@ -2588,7 +2590,7 @@
                         "schema": {
                             "type": "integer"
                         },
-                        "description": "The body's created_at in Unix seconds: refuse old (replayed) requests."
+                        "description": "A copy of the body's `created_at`, in Unix seconds. **Not signed**: a replayed request can carry any value, so check the age of the `created_at` in the verified body."
                     },
                     {
                         "name": "X-Replyze-Signature",
@@ -2596,9 +2598,9 @@
                         "required": true,
                         "schema": {
                             "type": "string",
-                            "example": "sha256=5d41402abc4b2a76b9719d911017c592"
+                            "example": "sha256=912da3252eccfa6203a07400fd4a24081c10f35882012b0a50b7b12844a78979"
                         },
-                        "description": "`sha256=` and the hex HMAC-SHA256 of the raw body, keyed with the webhook's signing secret (shown once when the webhook is added)."
+                        "description": "`sha256=` and the hex HMAC-SHA256 of the raw body, keyed with the webhook's signing secret (shown once when the webhook is added). Only the body is signed, not the other headers."
                     }
                 ],
                 "requestBody": {
@@ -2618,14 +2620,15 @@
                                     "id": {
                                         "type": "string",
                                         "format": "uuid",
-                                        "description": "The event's id: the same on every retry."
+                                        "description": "The event's id: the same on every retry. Drop an event whose id you have already handled."
                                     },
                                     "event": {
                                         "const": "conversation.assigned"
                                     },
                                     "created_at": {
                                         "type": "string",
-                                        "format": "date-time"
+                                        "format": "date-time",
+                                        "description": "When the event happened. Refuse an event more than 5 minutes from now: it is an old request sent again. Five minutes leaves room for the retries."
                                     },
                                     "workspace_id": {
                                         "type": "integer"
@@ -2677,7 +2680,7 @@
                             "type": "string",
                             "format": "uuid"
                         },
-                        "description": "The body's id: drop an event you already have."
+                        "description": "A copy of the body's `id`. **Not signed**: a replayed request can carry any value, so drop duplicates by the `id` in the verified body."
                     },
                     {
                         "name": "X-Replyze-Timestamp",
@@ -2686,7 +2689,7 @@
                         "schema": {
                             "type": "integer"
                         },
-                        "description": "The body's created_at in Unix seconds: refuse old (replayed) requests."
+                        "description": "A copy of the body's `created_at`, in Unix seconds. **Not signed**: a replayed request can carry any value, so check the age of the `created_at` in the verified body."
                     },
                     {
                         "name": "X-Replyze-Signature",
@@ -2694,9 +2697,9 @@
                         "required": true,
                         "schema": {
                             "type": "string",
-                            "example": "sha256=5d41402abc4b2a76b9719d911017c592"
+                            "example": "sha256=912da3252eccfa6203a07400fd4a24081c10f35882012b0a50b7b12844a78979"
                         },
-                        "description": "`sha256=` and the hex HMAC-SHA256 of the raw body, keyed with the webhook's signing secret (shown once when the webhook is added)."
+                        "description": "`sha256=` and the hex HMAC-SHA256 of the raw body, keyed with the webhook's signing secret (shown once when the webhook is added). Only the body is signed, not the other headers."
                     }
                 ],
                 "requestBody": {
@@ -2716,14 +2719,15 @@
                                     "id": {
                                         "type": "string",
                                         "format": "uuid",
-                                        "description": "The event's id: the same on every retry."
+                                        "description": "The event's id: the same on every retry. Drop an event whose id you have already handled."
                                     },
                                     "event": {
                                         "const": "message.created"
                                     },
                                     "created_at": {
                                         "type": "string",
-                                        "format": "date-time"
+                                        "format": "date-time",
+                                        "description": "When the event happened. Refuse an event more than 5 minutes from now: it is an old request sent again. Five minutes leaves room for the retries."
                                     },
                                     "workspace_id": {
                                         "type": "integer"
@@ -2778,7 +2782,7 @@
                             "type": "string",
                             "format": "uuid"
                         },
-                        "description": "The body's id: drop an event you already have."
+                        "description": "A copy of the body's `id`. **Not signed**: a replayed request can carry any value, so drop duplicates by the `id` in the verified body."
                     },
                     {
                         "name": "X-Replyze-Timestamp",
@@ -2787,7 +2791,7 @@
                         "schema": {
                             "type": "integer"
                         },
-                        "description": "The body's created_at in Unix seconds: refuse old (replayed) requests."
+                        "description": "A copy of the body's `created_at`, in Unix seconds. **Not signed**: a replayed request can carry any value, so check the age of the `created_at` in the verified body."
                     },
                     {
                         "name": "X-Replyze-Signature",
@@ -2795,9 +2799,9 @@
                         "required": true,
                         "schema": {
                             "type": "string",
-                            "example": "sha256=5d41402abc4b2a76b9719d911017c592"
+                            "example": "sha256=912da3252eccfa6203a07400fd4a24081c10f35882012b0a50b7b12844a78979"
                         },
-                        "description": "`sha256=` and the hex HMAC-SHA256 of the raw body, keyed with the webhook's signing secret (shown once when the webhook is added)."
+                        "description": "`sha256=` and the hex HMAC-SHA256 of the raw body, keyed with the webhook's signing secret (shown once when the webhook is added). Only the body is signed, not the other headers."
                     }
                 ],
                 "requestBody": {
@@ -2817,14 +2821,15 @@
                                     "id": {
                                         "type": "string",
                                         "format": "uuid",
-                                        "description": "The event's id: the same on every retry."
+                                        "description": "The event's id: the same on every retry. Drop an event whose id you have already handled."
                                     },
                                     "event": {
                                         "const": "contact.created"
                                     },
                                     "created_at": {
                                         "type": "string",
-                                        "format": "date-time"
+                                        "format": "date-time",
+                                        "description": "When the event happened. Refuse an event more than 5 minutes from now: it is an old request sent again. Five minutes leaves room for the retries."
                                     },
                                     "workspace_id": {
                                         "type": "integer"
@@ -2876,7 +2881,7 @@
                             "type": "string",
                             "format": "uuid"
                         },
-                        "description": "The body's id: drop an event you already have."
+                        "description": "A copy of the body's `id`. **Not signed**: a replayed request can carry any value, so drop duplicates by the `id` in the verified body."
                     },
                     {
                         "name": "X-Replyze-Timestamp",
@@ -2885,7 +2890,7 @@
                         "schema": {
                             "type": "integer"
                         },
-                        "description": "The body's created_at in Unix seconds: refuse old (replayed) requests."
+                        "description": "A copy of the body's `created_at`, in Unix seconds. **Not signed**: a replayed request can carry any value, so check the age of the `created_at` in the verified body."
                     },
                     {
                         "name": "X-Replyze-Signature",
@@ -2893,9 +2898,9 @@
                         "required": true,
                         "schema": {
                             "type": "string",
-                            "example": "sha256=5d41402abc4b2a76b9719d911017c592"
+                            "example": "sha256=912da3252eccfa6203a07400fd4a24081c10f35882012b0a50b7b12844a78979"
                         },
-                        "description": "`sha256=` and the hex HMAC-SHA256 of the raw body, keyed with the webhook's signing secret (shown once when the webhook is added)."
+                        "description": "`sha256=` and the hex HMAC-SHA256 of the raw body, keyed with the webhook's signing secret (shown once when the webhook is added). Only the body is signed, not the other headers."
                     }
                 ],
                 "requestBody": {
@@ -2915,14 +2920,15 @@
                                     "id": {
                                         "type": "string",
                                         "format": "uuid",
-                                        "description": "The event's id: the same on every retry."
+                                        "description": "The event's id: the same on every retry. Drop an event whose id you have already handled."
                                     },
                                     "event": {
                                         "const": "contact.updated"
                                     },
                                     "created_at": {
                                         "type": "string",
-                                        "format": "date-time"
+                                        "format": "date-time",
+                                        "description": "When the event happened. Refuse an event more than 5 minutes from now: it is an old request sent again. Five minutes leaves room for the retries."
                                     },
                                     "workspace_id": {
                                         "type": "integer"
@@ -4507,17 +4513,17 @@
             {
                 "lang": "node",
                 "label": "Node.js",
-                "source": "const crypto = require('crypto');\n\n// rawBody: the request body exactly as received (a Buffer or string)\nfunction verify(rawBody, headers, secret) {\n  const expected = 'sha256=' + crypto.createHmac('sha256', secret).update(rawBody).digest('hex');\n  const given = headers['x-replyze-signature'] || '';\n  const fresh = Math.abs(Date.now() / 1000 - Number(headers['x-replyze-timestamp'])) < 300;\n  return fresh && given.length === expected.length\n    && crypto.timingSafeEqual(Buffer.from(given), Buffer.from(expected));\n}"
+                "source": "const crypto = require('crypto');\n\n// rawBody: the request body exactly as received (a Buffer or string).\n// Returns the event, or null when the signature doesn't match or the event is more than 5 minutes old.\nfunction verify(rawBody, headers, secret) {\n  const given = headers['x-replyze-signature'];\n  if (typeof given !== 'string') return null;\n  // Compare bytes, not strings: a non-ASCII header has more bytes than characters,\n  // and timingSafeEqual throws on buffers of different lengths.\n  const expected = Buffer.from('sha256=' + crypto.createHmac('sha256', secret).update(rawBody).digest('hex'));\n  const received = Buffer.from(given);\n  if (expected.length !== received.length || !crypto.timingSafeEqual(expected, received)) return null;\n\n  // Signed, so take the time and the id from the body: X-Replyze-Timestamp and\n  // X-Replyze-Event-Id are unsigned copies that a replayed request can change.\n  const event = JSON.parse(rawBody.toString());\n  const age = Math.abs(Date.now() - Date.parse(event.created_at)) / 1000;\n  if (!(age <= 300)) return null;\n  return event; // then skip it if you have already handled event.id\n}"
             },
             {
                 "lang": "php",
                 "label": "PHP",
-                "source": "$raw = file_get_contents('php://input');\n$expected = 'sha256=' . hash_hmac('sha256', $raw, $secret);\n$given = $_SERVER['HTTP_X_REPLYZE_SIGNATURE'] ?? '';\n$fresh = abs(time() - (int) ($_SERVER['HTTP_X_REPLYZE_TIMESTAMP'] ?? 0)) < 300;\n\nif (!$fresh || !hash_equals($expected, $given)) {\n    http_response_code(401);\n    exit;\n}\n$event = json_decode($raw, true);"
+                "source": "// $raw: the request body exactly as received.\n// Returns the event, or null when the signature doesn't match or the event is more than 5 minutes old.\nfunction verify(string $raw, mixed $signature, string $secret): ?array\n{\n    $expected = 'sha256=' . hash_hmac('sha256', $raw, $secret);\n    if (!is_string($signature) || !hash_equals($expected, $signature)) {\n        return null;\n    }\n\n    // Signed, so take the time and the id from the body: X-Replyze-Timestamp and\n    // X-Replyze-Event-Id are unsigned copies that a replayed request can change.\n    $event = json_decode($raw, true);\n    $sent = is_string($event['created_at'] ?? null) ? strtotime($event['created_at']) : false;\n\n    return $sent !== false && abs(time() - $sent) <= 300 ? $event : null;\n}\n\n$event = verify(file_get_contents('php://input'), $_SERVER['HTTP_X_REPLYZE_SIGNATURE'] ?? null, $secret);\nif ($event === null) {\n    http_response_code(401);\n    exit;\n}\n// Then skip it if you have already handled $event['id']."
             },
             {
                 "lang": "python",
                 "label": "Python",
-                "source": "import hmac, hashlib, time\n\ndef verify(raw_body: bytes, headers, secret: str) -> bool:\n    expected = 'sha256=' + hmac.new(secret.encode(), raw_body, hashlib.sha256).hexdigest()\n    fresh = abs(time.time() - int(headers.get('X-Replyze-Timestamp', 0))) < 300\n    return fresh and hmac.compare_digest(expected, headers.get('X-Replyze-Signature', ''))"
+                "source": "import hashlib, hmac, json, time\nfrom datetime import datetime\n\ndef verify(raw_body: bytes, headers, secret: str):\n    \"\"\"The event, or None when the signature doesn't match or the event is more than 5 minutes old.\"\"\"\n    expected = ('sha256=' + hmac.new(secret.encode(), raw_body, hashlib.sha256).hexdigest()).encode()\n    given = headers.get('X-Replyze-Signature') or ''\n    # Compare bytes: compare_digest raises TypeError on a str with non-ASCII characters.\n    if not hmac.compare_digest(expected, given.encode('utf-8', 'replace')):\n        return None\n\n    # Signed, so take the time and the id from the body: X-Replyze-Timestamp and\n    # X-Replyze-Event-Id are unsigned copies that a replayed request can change.\n    event = json.loads(raw_body)\n    sent = datetime.fromisoformat(event['created_at'].replace('Z', '+00:00')).timestamp()\n    if abs(time.time() - sent) > 300:\n        return None\n    return event  # then skip it if you have already handled event['id']"
             }
         ]
     }
