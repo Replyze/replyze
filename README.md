@@ -99,7 +99,7 @@ Once the script has loaded, `window.Replyze` controls the widget.
 | `Replyze.open()` / `close()` / `toggle()` | Open, close or toggle the chat window |
 | `Replyze.show()` / `hide()` | Show or hide the launcher and the chat; the widget keeps running while hidden |
 | `Replyze.identify(email, name)` | Tell the chat who the visitor is |
-| `Replyze.identify({ user_id, email, name, user_hash })` | The same for a signed-in user, verified with a signature from your server: see [Identity verification](#3-identity-verification) |
+| `Replyze.identify({ user_id, email, name, user_hash })` | The same for a signed-in user, verified with a signature from your server: see [Identity verification](#3-identity-verification). Another person than the one this browser was identified as (another `user_id`, or else another email) starts as a new visitor first, as after `reset()` |
 | `Replyze.setUser({ email, name, data })` | Name and email, plus custom data in `data` |
 | `Replyze.setData({ plan: 'pro', seats: 12 })` | Custom data on the visitor's contact: text, numbers, true/false, or `null` to remove a key. Keys that match a contact field fill it; others are kept as extra data. Up to 50 keys at a time. |
 | `Replyze.pushEvent('Signed up', { plan: 'pro' })` | An event on the visitor's timeline in the inbox, with the page it happened on. Names are 1 to 64 characters. |
@@ -107,14 +107,14 @@ Once the script has loaded, `window.Replyze` controls the widget.
 | `Replyze.sendMessage('Hi!')` | Send a message as the visitor |
 | `Replyze.openArticle(12)` | Open the widget on a help article (the widget needs its Home or Help tab) |
 | `Replyze.setTracking(false)` | Turn visitor tracking off or on, for example from a cookie banner |
-| `Replyze.reset()` | The visitor signed out of your site: forget them (chat, contact, visitor cookie). The next chat starts as a new visitor. |
+| `Replyze.reset()` | The visitor signed out of your site: forget them (chat, contact, visitor cookie), also in your site's other open tabs. The next chat starts as a new visitor. Safe to call as the page loads, while the widget is still restoring the previous visitor's chat. |
 | `Replyze.on(event, callback)` / `off(event, callback)` | Listen to the events below |
 
 ### Events
 
 | Event | When | Callback gets |
 |---|---|---|
-| `ready` | The widget has started. It fires before `window.Replyze` exists, so a listener added with `on()` never hears it: to run code once the widget is there, queue the call (see below), because queued calls run right after the start | nothing |
+| `ready` | The widget has started: once, after the calls queued before the script loaded have run and `window.Replyze` is the widget's API, so a queued `on('ready', ...)` hears it. A listener added after that is called right away. (Before 13 November 2026 the widget fired it too early for any listener.) | nothing |
 | `open` / `close` | The chat window opened or closed | nothing |
 | `message:sent` | The visitor sent a message | `{ text }`, or `{ file }` for an upload |
 | `message:received` | A reply arrived from the AI or the team | the message |
