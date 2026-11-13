@@ -22,6 +22,11 @@ export function webhookBody() {
   return readFileSync(WEBHOOK_BODY_PATH);
 }
 
+/** An instant (Unix seconds) the way Replyze writes created_at (Laravel's toISOString()): microseconds and "Z". */
+export function isoTime(seconds) {
+  return new Date(Math.round(seconds * 1000)).toISOString().replace(/Z$/, '000Z');
+}
+
 /** Runs a program and returns its trimmed stdout; throws with stderr when it fails. */
 export function run(cmd, args, { env = {}, cwd = ROOT, input } = {}) {
   const result = spawnSync(cmd, args, { cwd, env: { ...process.env, ...env }, input, encoding: 'utf8' });

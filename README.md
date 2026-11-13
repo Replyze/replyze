@@ -317,55 +317,89 @@ with these headers:
 | Header | Value |
 |---|---|
 | `X-Replyze-Event` | The event name |
-| `X-Replyze-Event-Id` | The body's `id`, the same on every retry: drop an event you already have |
-| `X-Replyze-Timestamp` | The body's `created_at` in Unix seconds: refuse old (replayed) requests |
+| `X-Replyze-Event-Id` | A copy of the body's `id`, the same on every retry. **Not signed** |
+| `X-Replyze-Timestamp` | A copy of the body's `created_at`, in Unix seconds. **Not signed** |
 | `X-Replyze-Signature` | `sha256=` and the hex HMAC-SHA256 of the **raw** request body, keyed with the signing secret |
 
-**Verify every request** before you trust it: compute the HMAC over the raw bytes you received (not over re-serialized JSON) and compare in constant time. Answer with any 2xx within 10 seconds and do the work afterwards. A network error, a timeout or a 5xx is retried twice, after 30 seconds and then 3 minutes, with the same body; any other answer is final. Redirects are not followed, so a 3xx counts as a failed delivery. The URL must be a public `http://` or `https://` address. Requests come with `User-Agent: Replyze-Webhooks/1.0`.
+Only the body is signed. `X-Replyze-Event-Id` and `X-Replyze-Timestamp` are conveniences, for logs or routing; anyone who captured a request can send it again with new values in them. So take the id and the time from the body, never from these headers.
+
+**Check every request** before you trust it, in this order:
+
+1. Compute the HMAC over the raw bytes you received (not over re-serialized JSON) and compare it with `X-Replyze-Signature` in constant time, as bytes. No match: answer `401`.
+2. Parse the body. If its `created_at` is more than 5 minutes away from now, answer `400`: it is an old request sent again.
+3. If you have already handled its `id`, answer `200` and stop: it is a retry.
+
+Answer with any 2xx within 10 seconds and do the work afterwards. A network error, a timeout or a 5xx is retried twice, after 30 seconds and then 3 minutes, with the same body, so a 5-minute window lets the retries in; any other answer is final. Redirects are not followed, so a 3xx counts as a failed delivery. The URL must be a public `http://` or `https://` address. Requests come with `User-Agent: Replyze-Webhooks/1.0`.
 
 ```js
 // Node.js
 const crypto = require('crypto');
 function verifyReplyzeSignature(rawBody, header, secret) {
-  const expected = 'sha256=' + crypto.createHmac('sha256', secret).update(rawBody).digest('hex');
-  const a = Buffer.from(expected), b = Buffer.from(String(header || ''));
-  return a.length === b.length && crypto.timingSafeEqual(a, b);
+  if (typeof header !== 'string') return false;
+  const expected = Buffer.from('sha256=' + crypto.createHmac('sha256', secret).update(rawBody).digest('hex'));
+  const received = Buffer.from(header); // compare bytes: a non-ASCII header has more bytes than characters
+  return expected.length === received.length && crypto.timingSafeEqual(expected, received);
+}
+// createdAt from the signed body, not the X-Replyze-Timestamp header
+function isFresh(createdAt, maxAgeSeconds = 300) {
+  const sent = typeof createdAt === 'string' ? Date.parse(createdAt) : NaN;
+  return Number.isFinite(sent) && Math.abs(Date.now() - sent) <= maxAgeSeconds * 1000;
 }
 ```
 
 ```python
 # Python
-import hashlib, hmac
-def verify_replyze_signature(raw_body: bytes, header: str, secret: str) -> bool:
+import hashlib, hmac, time
+from datetime import datetime
+def verify_replyze_signature(raw_body: bytes, header: str | None, secret: str) -> bool:
     expected = "sha256=" + hmac.new(secret.encode(), raw_body, hashlib.sha256).hexdigest()
-    return hmac.compare_digest(expected, header or "")
+    # compare bytes: compare_digest raises TypeError on str with non-ASCII characters
+    return isinstance(header, str) and hmac.compare_digest(expected.encode(), header.encode("utf-8", "replace"))
+# created_at from the signed body, not the X-Replyze-Timestamp header
+def is_fresh(created_at: str | None, max_age_seconds: int = 300) -> bool:
+    try:
+        sent = datetime.fromisoformat(created_at.replace("Z", "+00:00")).timestamp()
+    except (AttributeError, TypeError, ValueError):
+        return False
+    return abs(time.time() - sent) <= max_age_seconds
 ```
 
 ```php
 // PHP
-function verify_replyze_signature(string $rawBody, ?string $header, string $secret): bool {
-    return hash_equals('sha256=' . hash_hmac('sha256', $rawBody, $secret), (string) $header);
+function verify_replyze_signature(string $rawBody, mixed $header, string $secret): bool {
+    return is_string($header) && hash_equals('sha256=' . hash_hmac('sha256', $rawBody, $secret), $header);
+}
+// $createdAt from the signed body, not the X-Replyze-Timestamp header
+function replyze_is_fresh(mixed $createdAt, int $maxAge = 300): bool {
+    $sent = is_string($createdAt) && preg_match('/^\d{4}-\d{2}-\d{2}T/', $createdAt) ? strtotime($createdAt) : false;
+    return $sent !== false && abs(time() - $sent) <= $maxAge;
 }
 ```
 
-Complete receivers that also check the timestamp and drop duplicates: [Express](examples/webhooks/node-express/), [Flask](examples/webhooks/python-flask/), [plain PHP](examples/webhooks/php/). Test vector: secret `9f86d081884c7d659a2feaa0c55ad015` and the body in [`examples/webhooks/test-body.json`](examples/webhooks/test-body.json) give `sha256=912da3252eccfa6203a07400fd4a24081c10f35882012b0a50b7b12844a78979`. CI sends that body to each of the three receivers, signed and unsigned, on every push.
+Complete receivers that do all three steps: [Express](examples/webhooks/node-express/), [Flask](examples/webhooks/python-flask/), [plain PHP](examples/webhooks/php/). Test vector: secret `9f86d081884c7d659a2feaa0c55ad015` and the body in [`examples/webhooks/test-body.json`](examples/webhooks/test-body.json) give `sha256=912da3252eccfa6203a07400fd4a24081c10f35882012b0a50b7b12844a78979`. CI starts each of the three receivers on every push and checks that a freshly signed event is handled once, that a wrong, missing or non-ASCII signature gets `401`, and that the test body, sent again with a new `X-Replyze-Timestamp` and `X-Replyze-Event-Id`, gets `400`: its `created_at` is old.
 
-To try a receiver on your machine, start it with the test secret and send it the test body:
+To try a receiver on your machine, start it with the test secret:
 
 ```bash
 cd examples/webhooks/node-express && npm install
 REPLYZE_WEBHOOK_SECRET=9f86d081884c7d659a2feaa0c55ad015 node server.js &
+```
 
+and send it an event made and signed just now (the receivers refuse anything older than 5 minutes):
+
+```bash
+# Send a signed test event
+SECRET=9f86d081884c7d659a2feaa0c55ad015
+BODY='{"id":"test-'$(date +%s)'","event":"message.created","created_at":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","workspace_id":1,"data":{"message":{"id":501,"conversation_id":88,"sender_type":"visitor","content":"Where is my order?"}}}'
+SIG=$(printf '%s' "$BODY" | openssl dgst -sha256 -hmac "$SECRET" | sed 's/^.*= //')
 curl -i http://localhost:3000/replyze/webhook \
   -H "Content-Type: application/json" \
   -H "X-Replyze-Event: message.created" \
-  -H "X-Replyze-Event-Id: 0b9f6a52-3c1e-4d7a-9e21-5f8c2b7d1a40" \
-  -H "X-Replyze-Timestamp: $(date +%s)" \
-  -H "X-Replyze-Signature: sha256=912da3252eccfa6203a07400fd4a24081c10f35882012b0a50b7b12844a78979" \
-  --data-binary @../test-body.json
+  -H "X-Replyze-Signature: sha256=$SIG" \
+  --data-binary "$BODY"
 ```
 
-`--data-binary` sends the file byte for byte; `-d` would strip its line breaks and change the signature (this file has none, but yours may).
+The answer is `200 OK` and the receiver prints the message. Run only the `curl` command again and it sends the same event, like a retry: `200`, and nothing printed. `test-body.json` with its test-vector signature gets `400 Too old`, however fresh its headers: that is the replay check working. `--data-binary` sends the bytes as they are; `-d` would strip line breaks from a file and change the signature.
 
 No-code tools (Zapier, Make, n8n) connect with their HTTP modules: a webhook trigger ("Catch Hook") for events, and HTTP requests with an API key for actions.
 

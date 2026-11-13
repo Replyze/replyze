@@ -22,16 +22,19 @@ app.post('/replyze/webhook', express.raw({ type: 'application/json', limit: '1mb
   if (!verifyReplyzeSignature(req.body, req.get('X-Replyze-Signature'), secret)) {
     return res.status(401).send('Bad signature');
   }
-  if (!isFresh(req.get('X-Replyze-Timestamp'))) {
+  // Signed, so now it is safe to parse. Take the time and the id from the body:
+  // the signature covers it. X-Replyze-Timestamp and X-Replyze-Event-Id are
+  // unsigned copies that anyone replaying an old request can change.
+  const event = JSON.parse(req.body.toString('utf8'));
+  if (!isFresh(event.created_at)) {
     return res.status(400).send('Too old');
   }
-  const eventId = req.get('X-Replyze-Event-Id');
-  if (seen.has(eventId)) {
+  if (seen.has(event.id)) {
     return res.sendStatus(200); // a retry of an event you already have
   }
-  seen.add(eventId);
+  // Only needs to remember ids for as long as isFresh lets an event in (5 minutes).
+  seen.add(event.id);
 
-  const event = JSON.parse(req.body.toString('utf8'));
   // Answer fast; do slow work after (or in a queue).
   res.sendStatus(200);
 

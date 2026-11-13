@@ -26,16 +26,19 @@ seen: set[str] = set()
 def replyze_webhook():
     # get_data() is the exact bytes: the signature is over the raw body, not re-serialized JSON.
     raw = request.get_data()
-    if not verify_replyze_signature(raw, request.headers.get("X-Replyze-Signature", ""), SECRET):
+    if not verify_replyze_signature(raw, request.headers.get("X-Replyze-Signature"), SECRET):
         abort(401)
-    if not is_fresh(request.headers.get("X-Replyze-Timestamp")):
-        abort(400)
-    event_id = request.headers.get("X-Replyze-Event-Id", "")
-    if event_id in seen:
-        return "", 200  # a retry of an event you already have
-    seen.add(event_id)
-
+    # Signed, so now it is safe to parse. Take the time and the id from the body:
+    # the signature covers it. X-Replyze-Timestamp and X-Replyze-Event-Id are
+    # unsigned copies that anyone replaying an old request can change.
     event = json.loads(raw)
+    if not is_fresh(event.get("created_at")):
+        abort(400)
+    if event["id"] in seen:
+        return "", 200  # a retry of an event you already have
+    # Only needs to remember ids for as long as is_fresh lets an event in (5 minutes).
+    seen.add(event["id"])
+
     if event["event"] == "message.created":
         m = event["data"]["message"]
         print(f"[{m['sender_type']}] in #{m['conversation_id']}: {m['content']}")
