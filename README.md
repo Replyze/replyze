@@ -11,7 +11,31 @@
 
 [Replyze](https://replyze.chat/?utm_source=github&utm_medium=replyze) is AI customer support for your website: an AI agent that answers from your knowledge base and hands the chat to your team when it should, live chat on your site, and one shared inbox for web chat, email, WhatsApp and Telegram (Messenger and Instagram are in beta). This repository is the developer reference: how to embed the chat widget, control it from JavaScript, verify signed-in users, use the REST API, receive webhooks and connect AI agents over MCP. Every example in [`examples/`](examples/) runs as is.
 
-[Website](https://replyze.chat/?utm_source=github&utm_medium=replyze) · [Sign up](https://client.replyze.chat/register?utm_source=github&utm_medium=replyze) · [Dashboard](https://client.replyze.chat/?utm_source=github&utm_medium=replyze) · [Pricing](https://replyze.chat/pricing?utm_source=github&utm_medium=replyze) · [OpenAPI spec](openapi.json)
+**[Create a free account](https://client.replyze.chat/register?utm_source=github&utm_medium=replyze&utm_content=cta-top)** · [Live demo](https://replyze.chat/?utm_source=github&utm_medium=replyze&utm_content=live-demo) · [OpenAPI spec](openapi.json)
+
+## Quickstart: your first API call
+
+1. **Get an API key.** [Create a free account](https://client.replyze.chat/register?utm_source=github&utm_medium=replyze&utm_content=quickstart), open **Settings → Integrations → Developer** and create a key with the `conversations:read` scope. The key starts with `rpz_live_` and is shown once. Whether a workspace has the REST API depends on its plan ([pricing](https://replyze.chat/pricing?utm_source=github&utm_medium=replyze&utm_content=quickstart)); without it, calls answer `403 plan_required`.
+2. **Check the key.**
+
+   ```bash
+   export REPLYZE_API_KEY=rpz_live_...
+   curl https://client.replyze.chat/api/v1/me -H "Authorization: Bearer $REPLYZE_API_KEY"
+   ```
+
+   The answer names the key, its scopes and its workspace:
+
+   ```json
+   {"object":"api_key","id":7,"name":"My first key","prefix":"rpz_live_AbC123","scopes":["conversations:read"],"expires_at":null,"workspace":{"id":1,"name":"Acme"}}
+   ```
+
+3. **List your open conversations.**
+
+   ```bash
+   curl "https://client.replyze.chat/api/v1/conversations?status=open&limit=5" -H "Authorization: Bearer $REPLYZE_API_KEY"
+   ```
+
+Next: [send a reply](#examples) from Node.js, Python or PHP, [receive webhooks](#5-webhooks), or [put the chat on your site](#1-add-the-chat-widget-to-your-site). The live demo is replyze.chat itself: the chat bubble in the bottom-right corner is the Replyze widget.
 
 ## Contents
 
@@ -22,6 +46,7 @@
 5. [Webhooks](#5-webhooks)
 6. [MCP server for AI agents](#6-mcp-server-for-ai-agents)
 7. [More from Replyze](#more-from-replyze)
+8. [Development](#development)
 
 ## 1. Add the chat widget to your site
 
@@ -38,6 +63,8 @@ Paste this before `</body>` on every page. Your widget token (`wgt_...`) is in t
 ```
 
 The script loads asynchronously, so it doesn't hold up your page. A full page with the JavaScript API wired up is in [`examples/widget/index.html`](examples/widget/index.html).
+
+Where the snippet goes on WordPress, Shopify, Wix, Webflow, Google Tag Manager, React, Laravel and other platforms, with a troubleshooting list (allowed domains, Content-Security-Policy, ad blockers): [add-live-chat-to-website](https://github.com/Replyze/add-live-chat-to-website). Packages that do it for you: [React and Next.js](https://github.com/Replyze/react-live-chat), [Vue and Nuxt](https://github.com/Replyze/vue-live-chat), [WordPress](https://github.com/Replyze/wordpress-live-chat), [React Native and Expo](https://github.com/Replyze/react-native-live-chat), [Flutter](https://github.com/Replyze/flutter-live-chat).
 
 ### Options
 
@@ -177,11 +204,11 @@ Runnable versions with the email fallback are in [`examples/identity/`](examples
 The REST API reads and changes one workspace: conversations and messages, contacts, the knowledge base and analytics. Whether your workspace has it depends on its plan ([pricing](https://replyze.chat/pricing?utm_source=github&utm_medium=replyze)); without it, calls answer `403 plan_required`.
 
 - **Base URL:** `https://client.replyze.chat/api/v1`
-- **Authentication:** an API key, sent as `Authorization: Bearer rpz_live_...`. Owners and admins make keys in **Settings → Integrations → Developer**, with the scopes the key needs. A key acts as the workspace, not as a person; it is shown once and can be revoked at any time.
+- **Authentication:** an API key, sent as `Authorization: Bearer rpz_live_...` (or as `X-Api-Key: rpz_live_...`). Owners and admins make keys in **Settings → Integrations → Developer**, with the scopes the key needs. A key acts as the workspace, not as a person; it is shown once and can be revoked at any time.
 - **Spec:** [`openapi.json`](openapi.json) (OpenAPI 3.1), the same document as `https://client.replyze.chat/api/v1/openapi.json`. Import it into Postman, Insomnia or an OpenAPI code generator.
 
 ```bash
-curl https://client.replyze.chat/api/v1/conversations?status=open \
+curl "https://client.replyze.chat/api/v1/conversations?status=open" \
   -H "Authorization: Bearer $REPLYZE_API_KEY"
 ```
 
@@ -230,10 +257,23 @@ A write scope includes the read scope of the same resource.
 ### Conventions
 
 - **JSON in, JSON out.** Every object has an `object` field naming its type. Times are ISO 8601 in UTC.
-- **Pagination.** Lists answer `{ "object": "list", "data": [...], "has_more": true, "next_cursor": "..." }`. Pass `cursor=<next_cursor>` for the next page and `limit` (1 to 100, default 25) for its size. `updated_since` returns only what changed since then, for syncing.
-- **Errors.** `{ "error": { "code": "...", "message": "...", "details": { ... } } }`: 401 `missing_api_key` / `invalid_api_key` / `api_key_revoked` / `api_key_expired`, 403 `insufficient_scope` / `plan_required`, 404 `not_found`, 409 `contact_exists`, 422 `validation_failed` (with `details.errors` per field), 429 `rate_limited`.
-- **Idempotency.** Send `Idempotency-Key: <a unique value>` with a POST. Sent again with the same key within 24 hours, it returns the first answer (with `Idempotent-Replayed: true`) instead of doing it twice, so a retry never sends a message twice.
-- **Rate limit.** 120 requests a minute per key. Every answer has `X-RateLimit-Limit`, `X-RateLimit-Remaining` and `X-RateLimit-Reset`; a 429 has `Retry-After` (seconds).
+- **Pagination.** Lists answer `{ "object": "list", "data": [...], "has_more": true, "next_cursor": "..." }`. Pass `cursor=<next_cursor>` for the next page and `limit` (1 to 100; default 25, and 50 for a conversation's messages) for its size. Lists are newest first, except a conversation's messages, which are oldest first. `updated_since` returns only what changed since then, for syncing.
+- **Errors.** `{ "error": { "code": "...", "message": "...", "details": { ... } } }`:
+
+  | Status | `code` |
+  |---|---|
+  | 400 | `bad_request` |
+  | 401 | `missing_api_key`, `invalid_api_key`, `api_key_revoked`, `api_key_expired` |
+  | 403 | `insufficient_scope` (the scope in `details.required_scope`), `plan_required`, `workspace_suspended` |
+  | 404 | `not_found`: no such record in this workspace (another workspace's records are "not found" too), or no such endpoint |
+  | 405 | `method_not_allowed` |
+  | 409 | `contact_exists` (the contact in `details.contact_id`), `idempotency_in_progress` |
+  | 422 | `validation_failed` (`details.errors` per field), `idempotency_key_reused` |
+  | 429 | `rate_limited` (`details.retry_after` in seconds) |
+  | 500 | `server_error` |
+
+- **Idempotency.** Send `Idempotency-Key: <a unique value>` (up to 255 characters) with a POST. Sent again with the same key within 24 hours, it returns the first answer (with `Idempotent-Replayed: true`) instead of doing it twice, so a retry never sends a message twice. The same key with a different request is refused (`422 idempotency_key_reused`), and so is a retry while the first request is still running (`409 idempotency_in_progress`). Server errors, `409` and `429` answers are not kept, so you can retry those with the same key.
+- **Rate limit.** 120 requests a minute per key, and 600 a minute for all the keys of a workspace together. Every answer has `X-RateLimit-Limit`, `X-RateLimit-Remaining` and `X-RateLimit-Reset` (Unix time); a 429 has `Retry-After` (seconds).
 - **Audit.** What a key changes, and every conversation or contact it reads, is in the workspace's audit log under the key's name.
 
 ### Examples
@@ -281,7 +321,7 @@ with these headers:
 | `X-Replyze-Timestamp` | The body's `created_at` in Unix seconds: refuse old (replayed) requests |
 | `X-Replyze-Signature` | `sha256=` and the hex HMAC-SHA256 of the **raw** request body, keyed with the signing secret |
 
-**Verify every request** before you trust it: compute the HMAC over the raw bytes you received (not over re-serialized JSON) and compare in constant time. Answer with any 2xx quickly and do the work afterwards. A network error or a 5xx is retried twice, after 30 seconds and then 3 minutes, with the same body; any other answer is final.
+**Verify every request** before you trust it: compute the HMAC over the raw bytes you received (not over re-serialized JSON) and compare in constant time. Answer with any 2xx within 10 seconds and do the work afterwards. A network error, a timeout or a 5xx is retried twice, after 30 seconds and then 3 minutes, with the same body; any other answer is final. Redirects are not followed, so a 3xx counts as a failed delivery. The URL must be a public `http://` or `https://` address. Requests come with `User-Agent: Replyze-Webhooks/1.0`.
 
 ```js
 // Node.js
@@ -308,23 +348,64 @@ function verify_replyze_signature(string $rawBody, ?string $header, string $secr
 }
 ```
 
-Complete receivers that also check the timestamp and drop duplicates: [Express](examples/webhooks/node-express/), [Flask](examples/webhooks/python-flask/), [plain PHP](examples/webhooks/php/). Test vector: secret `9f86d081884c7d659a2feaa0c55ad015` and the body in [`examples/webhooks/test-body.json`](examples/webhooks/test-body.json) give `sha256=912da3252eccfa6203a07400fd4a24081c10f35882012b0a50b7b12844a78979`.
+Complete receivers that also check the timestamp and drop duplicates: [Express](examples/webhooks/node-express/), [Flask](examples/webhooks/python-flask/), [plain PHP](examples/webhooks/php/). Test vector: secret `9f86d081884c7d659a2feaa0c55ad015` and the body in [`examples/webhooks/test-body.json`](examples/webhooks/test-body.json) give `sha256=912da3252eccfa6203a07400fd4a24081c10f35882012b0a50b7b12844a78979`. CI sends that body to each of the three receivers, signed and unsigned, on every push.
+
+To try a receiver on your machine, start it with the test secret and send it the test body:
+
+```bash
+cd examples/webhooks/node-express && npm install
+REPLYZE_WEBHOOK_SECRET=9f86d081884c7d659a2feaa0c55ad015 node server.js &
+
+curl -i http://localhost:3000/replyze/webhook \
+  -H "Content-Type: application/json" \
+  -H "X-Replyze-Event: message.created" \
+  -H "X-Replyze-Event-Id: 0b9f6a52-3c1e-4d7a-9e21-5f8c2b7d1a40" \
+  -H "X-Replyze-Timestamp: $(date +%s)" \
+  -H "X-Replyze-Signature: sha256=912da3252eccfa6203a07400fd4a24081c10f35882012b0a50b7b12844a78979" \
+  --data-binary @../test-body.json
+```
+
+`--data-binary` sends the file byte for byte; `-d` would strip its line breaks and change the signature (this file has none, but yours may).
 
 No-code tools (Zapier, Make, n8n) connect with their HTTP modules: a webhook trigger ("Catch Hook") for events, and HTTP requests with an API key for actions.
 
 ## 6. MCP server for AI agents
 
-Replyze runs a remote [MCP](https://modelcontextprotocol.io) server at `https://client.replyze.chat/api/mcp` (streamable HTTP, authenticated with an API key). It lets Claude, Cursor, VS Code and other MCP clients search and read your conversations, reply to customers, leave internal notes, assign conversations, look up contacts and search your knowledge base; the key's scopes decide which tools the agent gets. Setup for each client: [Replyze/replyze-mcp](https://github.com/Replyze/replyze-mcp).
+Replyze runs a remote [MCP](https://modelcontextprotocol.io) server at `https://client.replyze.chat/api/mcp` (streamable HTTP, authenticated with an API key). It lets Claude, Cursor, VS Code and other MCP clients search and read your conversations, reply to customers, leave internal notes, assign conversations, look up contacts and search your knowledge base; the key's scopes decide which tools the agent gets. In Claude Code, for example:
+
+```bash
+claude mcp add --transport http replyze https://client.replyze.chat/api/mcp \
+  --header "Authorization: Bearer $REPLYZE_API_KEY"
+```
+
+Setup for Claude Desktop, Cursor, VS Code and other clients: [Replyze/replyze-mcp](https://github.com/Replyze/replyze-mcp).
+
+A public help center is an MCP server too, with no key: `https://client.replyze.chat/api/mcp/kb/<your-help-center-slug>` lets anyone's assistant search and read your published articles. See [Replyze/knowledge-base-mcp-server](https://github.com/Replyze/knowledge-base-mcp-server).
 
 ## More from Replyze
 
 | Repository | What is inside |
 |---|---|
 | [add-live-chat-to-website](https://github.com/Replyze/add-live-chat-to-website) | Copy-paste code to add live chat to HTML, WordPress, Shopify, Wix, Webflow, React, Next.js, Vue, Laravel and more |
+| [react-live-chat](https://github.com/Replyze/react-live-chat) | React and Next.js live chat component |
+| [vue-live-chat](https://github.com/Replyze/vue-live-chat) | Vue and Nuxt live chat component |
 | [wordpress-live-chat](https://github.com/Replyze/wordpress-live-chat) | WordPress live chat and AI chatbot plugin |
 | [react-native-live-chat](https://github.com/Replyze/react-native-live-chat) | Live chat and AI support in React Native and Expo apps |
 | [flutter-live-chat](https://github.com/Replyze/flutter-live-chat) | Live chat and AI support in Flutter apps |
 | [replyze-mcp](https://github.com/Replyze/replyze-mcp) | The Replyze MCP server for Claude, Cursor and VS Code |
+| [knowledge-base-mcp-server](https://github.com/Replyze/knowledge-base-mcp-server) | Your public help center as an MCP server, no key needed |
+
+## Development
+
+Everything in [`examples/`](examples/) is checked on every push ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)): the spec is linted with Redocly, every example is syntax-checked, and the webhook and identity examples run against the test vectors above. To run the same checks locally (Node.js 18+, Python 3.10+, PHP 8.1+):
+
+```bash
+npx @redocly/cli lint openapi.json
+bash scripts/check-syntax.sh
+node --test tests/*.test.mjs
+```
+
+The end-to-end webhook tests start the Express, Flask and PHP receivers; they need `npm install` in `examples/webhooks/node-express` and `pip install -r examples/webhooks/python-flask/requirements.txt`, and run with `RUN_RECEIVERS=1 node --test tests/*.test.mjs`.
 
 ## License
 

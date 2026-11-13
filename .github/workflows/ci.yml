@@ -1,0 +1,82 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: '17 6 * * 1' # Mondays: catch drift from the live spec and dead links
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  spec:
+    name: OpenAPI lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npx --yes @redocly/cli@2.78.0 lint openapi.json
+
+  examples:
+    name: Examples (syntax, vectors, receivers)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          tools: none
+          coverage: none
+      - name: Syntax of every example
+        run: bash scripts/check-syntax.sh
+      - name: Install the receivers' dependencies
+        run: |
+          npm install --no-audit --no-fund --prefix examples/webhooks/node-express
+          python -m pip install --quiet -r examples/webhooks/python-flask/requirements.txt
+      - name: Webhook and identity examples against the test vectors, receivers end to end
+        run: node --test tests/*.test.mjs
+        env:
+          RUN_RECEIVERS: '1'
+          PYTHON: python
+
+  links:
+    name: Links
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: lycheeverse/lychee-action@v2
+        with:
+          args: --no-progress --max-retries 3 --retry-wait-time 5 --accept 200,206,429 README.md
+          fail: true
+
+  spec-drift:
+    name: openapi.json matches the live spec
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compare with https://client.replyze.chat/api/v1/openapi.json
+        run: |
+          curl --fail --silent --show-error --retry 3 --retry-delay 5 -o live.json https://client.replyze.chat/api/v1/openapi.json
+          if ! cmp -s live.json openapi.json; then
+            echo "::error::openapi.json differs from the live spec. Update it with: curl -o openapi.json https://client.replyze.chat/api/v1/openapi.json"
+            diff <(python3 -m json.tool --sort-keys openapi.json) <(python3 -m json.tool --sort-keys live.json) | head -50 || true
+            exit 1
+          fi

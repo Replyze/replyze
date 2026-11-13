@@ -44,7 +44,8 @@
       document.getElementById('log').textContent += line + '\n';
     }
 
-    replyze('on', 'ready', () => log('ready'));
+    // No on('ready') here: 'ready' fires while the widget starts, before any listener exists.
+    // The queued calls below run right after it starts.
     replyze('on', 'open', () => log('open'));
     replyze('on', 'close', () => log('close'));
     replyze('on', 'message:sent', (m) => log('message:sent ' + JSON.stringify(m)));

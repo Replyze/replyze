@@ -1,0 +1,6 @@
+# Redocly CLI config for `npx @redocly/cli lint openapi.json`.
+extends:
+  - recommended
+rules:
+  # The API is a hosted service, not a licensed artifact: the spec has no license object.
+  info-license: off

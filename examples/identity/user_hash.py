@@ -10,7 +10,7 @@ import sys
 
 
 def replyze_user_hash(secret: str, user_id=None, email=None) -> str:
-    """Hex HMAC-SHA256 under the widget's identity secret (Settings > Widget >
+    """Hex HMAC-SHA256 under the widget's identity secret (Settings > Chat Widget >
     Identity) of the user's id, or, for a user without one, of their email in
     lower case and trimmed."""
     subject = "" if user_id is None else str(user_id).strip()
