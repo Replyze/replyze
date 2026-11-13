@@ -87,7 +87,7 @@ Once the script has loaded, `window.Replyze` controls the widget.
 
 | Event | When | Callback gets |
 |---|---|---|
-| `ready` | The widget has started | nothing |
+| `ready` | The widget has started. It fires before `window.Replyze` exists, so a listener added with `on()` never hears it: to run code once the widget is there, queue the call (see below), because queued calls run right after the start | nothing |
 | `open` / `close` | The chat window opened or closed | nothing |
 | `message:sent` | The visitor sent a message | `{ text }`, or `{ file }` for an upload |
 | `message:received` | A reply arrived from the AI or the team | the message |
@@ -118,7 +118,7 @@ The script is `async`, so `window.Replyze` doesn't exist for the first moments. 
     else window.Replyze._queue.push([method, ...args]);
   }
 
-  replyze('on', 'ready', () => console.log('Replyze is ready'));
+  replyze('on', 'open', () => console.log('The chat was opened'));
   replyze('identify', 'jane@example.com', 'Jane Doe');
 </script>
 ```
