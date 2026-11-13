@@ -1,5 +1,5 @@
 <p align="center">
-  <a href="https://replyze.chat/?utm_source=github&utm_medium=replyze">
+  <a href="https://replyze.chat/?utm_source=github&utm_medium=referral&utm_campaign=replyze">
     <picture>
       <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Replyze/.github/main/assets/logo-on-dark.png">
       <img src="https://raw.githubusercontent.com/Replyze/.github/main/assets/logo-on-light.png" alt="Replyze" height="48">
@@ -9,13 +9,13 @@
 
 # Replyze developer docs: live chat widget, JavaScript API, REST API and webhooks
 
-[Replyze](https://replyze.chat/?utm_source=github&utm_medium=replyze) is AI customer support for your website: an AI agent that answers from your knowledge base and hands the chat to your team when it should, live chat on your site, and one shared inbox for web chat, email, WhatsApp and Telegram (Messenger and Instagram are in beta). This repository is the developer reference: how to embed the chat widget, control it from JavaScript, verify signed-in users, use the REST API, receive webhooks and connect AI agents over MCP. Every example in [`examples/`](examples/) runs as is.
+[Replyze](https://replyze.chat/?utm_source=github&utm_medium=referral&utm_campaign=replyze) is AI customer support for your website: an AI agent that answers from your knowledge base and hands the chat to your team when it should, live chat on your site, and one shared inbox for web chat, email, WhatsApp and Telegram (Messenger and Instagram are in beta). This repository is the developer reference: how to embed the chat widget, control it from JavaScript, verify signed-in users, use the REST API, receive webhooks and connect AI agents over MCP. Every example in [`examples/`](examples/) runs as is.
 
-**[Create a free account](https://client.replyze.chat/register?utm_source=github&utm_medium=replyze&utm_content=cta-top)** · [Live demo](https://replyze.chat/?utm_source=github&utm_medium=replyze&utm_content=live-demo) · [OpenAPI spec](openapi.json)
+**[Create a free account](https://client.replyze.chat/register?utm_source=github&utm_medium=referral&utm_campaign=replyze&utm_content=cta-top)** · [Live demo](https://replyze.chat/?utm_source=github&utm_medium=referral&utm_campaign=replyze&utm_content=live-demo) · [OpenAPI spec](openapi.json)
 
 ## Quickstart: your first API call
 
-1. **Get an API key.** [Create a free account](https://client.replyze.chat/register?utm_source=github&utm_medium=replyze&utm_content=quickstart), open **Settings → Integrations → Developer** and create a key with the `conversations:read` scope. The key starts with `rpz_live_` and is shown once. Whether a workspace has the REST API depends on its plan ([pricing](https://replyze.chat/pricing?utm_source=github&utm_medium=replyze&utm_content=quickstart)); without it, calls answer `403 plan_required`.
+1. **Get an API key.** [Create a free account](https://client.replyze.chat/register?utm_source=github&utm_medium=referral&utm_campaign=replyze&utm_content=quickstart), open **Settings → Integrations → Developer** and create a key with the `conversations:read` scope. The key starts with `rpz_live_` and is shown once. Whether a workspace has the REST API depends on its plan ([pricing](https://replyze.chat/pricing?utm_source=github&utm_medium=referral&utm_campaign=replyze&utm_content=quickstart)); without it, calls answer `403 plan_required`.
 2. **Check the key.**
 
    ```bash
@@ -201,7 +201,7 @@ Runnable versions with the email fallback are in [`examples/identity/`](examples
 
 ## 4. REST API
 
-The REST API reads and changes one workspace: conversations and messages, contacts, the knowledge base and analytics. Whether your workspace has it depends on its plan ([pricing](https://replyze.chat/pricing?utm_source=github&utm_medium=replyze)); without it, calls answer `403 plan_required`.
+The REST API reads and changes one workspace: conversations and messages, contacts, the knowledge base and analytics. Whether your workspace has it depends on its plan ([pricing](https://replyze.chat/pricing?utm_source=github&utm_medium=referral&utm_campaign=replyze)); without it, calls answer `403 plan_required`.
 
 - **Base URL:** `https://client.replyze.chat/api/v1`
 - **Authentication:** an API key, sent as `Authorization: Bearer rpz_live_...` (or as `X-Api-Key: rpz_live_...`). Owners and admins make keys in **Settings → Integrations → Developer**, with the scopes the key needs. A key acts as the workspace, not as a person; it is shown once and can be revoked at any time.
