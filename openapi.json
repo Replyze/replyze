@@ -4434,6 +4434,8 @@
         "url": "https://client.replyze.chat/api/mcp",
         "transport": "streamable-http",
         "protocol_versions": [
+            "2026-07-28",
+            "2025-11-25",
             "2025-06-18",
             "2025-03-26",
             "2024-11-05"
